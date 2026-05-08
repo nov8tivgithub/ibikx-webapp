@@ -103,6 +103,44 @@
     });
   }
 
+  function bindFilterPills(scope) {
+    scope.querySelectorAll('[data-pill-group]').forEach((group) => {
+      if (group.__pillBound) return;
+      group.__pillBound = true;
+      const pills = group.querySelectorAll('[data-pill]');
+      pills.forEach((pill) => {
+        pill.addEventListener('click', () => {
+          pills.forEach((p) => p.classList.toggle('is-active', p === pill));
+        });
+      });
+    });
+  }
+
+  function bindMonthPicker(scope) {
+    scope.querySelectorAll('[data-month-picker]').forEach((root) => {
+      if (root.__monthBound) return;
+      root.__monthBound = true;
+      const display = document.querySelector(root.dataset.monthDisplay);
+      const yearBtn = root.querySelector('[data-year-btn]');
+      const yearOptions = root.querySelector('[data-year-options]');
+      yearBtn?.addEventListener('click', () => yearOptions?.classList.toggle('hidden'));
+      yearOptions?.querySelectorAll('button').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          if (yearBtn) yearBtn.textContent = btn.textContent;
+          yearOptions.classList.add('hidden');
+        });
+      });
+      root.querySelectorAll('[data-month]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          root.querySelectorAll('[data-month]').forEach((b) => b.classList.toggle('is-active', b === btn));
+          if (display) display.textContent = `${btn.textContent} ${yearBtn?.textContent || ''}`.trim();
+          const modal = root.closest('[data-modal]');
+          if (modal) modal.classList.add('hidden');
+        });
+      });
+    });
+  }
+
   function applyNavActive(scope) {
     scope.querySelectorAll('.app-sidebar[data-active], nav[data-active]').forEach((nav) => {
       const active = nav.dataset.active;
@@ -139,6 +177,8 @@
     bindCopy(scope);
     bindPasswordEye(scope);
     bindLanguagePills(scope);
+    bindFilterPills(scope);
+    bindMonthPicker(scope);
     bindCarousels(scope);
     applyNavActive(scope);
   }

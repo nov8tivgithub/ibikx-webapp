@@ -30,6 +30,26 @@ body {
   border-bottom-color: var(--brand-blue);
 }
 
+/* Segmented control variant — fully filled pill, used on leaderboard tabs.
+   !important is needed because the Tailwind Play CDN injects its color
+   utilities AFTER this file loads, and despite higher specificity the
+   utility cascade can still win when it shares specificity. */
+.segmented [data-tab].is-active {
+  background-color: var(--brand-blue) !important;
+  color: #ffffff !important;
+  border-bottom-color: transparent !important;
+}
+
+/* Month / year picker active states — same Tailwind-CDN ordering issue,
+   so we force the colour with !important. */
+[data-year-btn],
+[data-month].is-active,
+[data-fy].is-active {
+  background-color: var(--brand-blue) !important;
+  color: #ffffff !important;
+  border-color: var(--brand-blue) !important;
+}
+
 /* Language pill active state */
 [data-lang].is-active {
   background-color: var(--brand-blue);
@@ -166,6 +186,32 @@ body {
 .badge-crown {
   background: var(--brand-gold);
   color: #fff;
+}
+
+/* Top-3 rank bar gradients used on the leaderboard */
+.rank-gold   { background: linear-gradient(90deg, #d4a017 0%, #f0c948 50%, #d4a017 100%); }
+.rank-silver { background: linear-gradient(90deg, #6b7280 0%, #b8c0c8 50%, #6b7280 100%); }
+.rank-bronze { background: linear-gradient(90deg, #c2410c 0%, #f97316 50%, #c2410c 100%); }
+
+/* Filter pill row inside the leaderboard tabs */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 1rem;
+  border-radius: 9999px;
+  border: 1px solid #cbd5e1;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #334155;
+  background: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.pill.is-active {
+  background: rgba(30, 155, 255, 0.10);
+  border-color: var(--brand-blue);
+  color: var(--brand-blue);
+  font-weight: 600;
 }
 
 /* FREE pill */
