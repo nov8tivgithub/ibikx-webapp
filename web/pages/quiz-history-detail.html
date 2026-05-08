@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz History — Mobilix IdeasCaards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../assets/js/tailwind-config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../assets/css/overrides.css" />
+</head>
+<body class="has-bottom-nav">
+  <div data-component="sidebar" data-active="quiz"></div>
+
+  <div class="with-sidebar min-h-screen">
+    <header class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100">
+      <div class="px-4 lg:px-8 h-16 flex items-center gap-3">
+        <a href="quiz-history.html" class="-ml-1 p-2 rounded-md hover:bg-slate-100" aria-label="Back">
+          <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></svg>
+        </a>
+        <h1 class="text-lg lg:text-xl font-semibold text-slate-900">Quiz History</h1>
+      </div>
+    </header>
+
+    <main class="px-4 lg:px-8 py-6 space-y-6">
+      <!-- Difficulty + answer distribution row -->
+      <section class="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
+        <!-- Gauge -->
+        <svg viewBox="0 0 200 120" class="w-44 lg:w-52 h-auto shrink-0">
+          <path d="M 25 100 A 75 75 0 0 1 62 35" stroke="#f87171" stroke-width="16" fill="none" stroke-linecap="round" />
+          <path d="M 62 35 A 75 75 0 0 1 138 35" stroke="#facc15" stroke-width="16" fill="none" />
+          <path d="M 138 35 A 75 75 0 0 1 175 100" stroke="#4ade80" stroke-width="16" fill="none" stroke-linecap="round" />
+          <g font-size="9" fill="#94a3b8" font-weight="700">
+            <text x="14" y="116" text-anchor="middle">0</text>
+            <text x="38" y="60" text-anchor="middle">20</text>
+            <text x="68" y="22" text-anchor="middle">40</text>
+            <text x="100" y="14" text-anchor="middle">60</text>
+            <text x="132" y="22" text-anchor="middle">80</text>
+            <text x="186" y="116" text-anchor="middle">100</text>
+          </g>
+          <!-- Needle pointing at 58% : rotation = -90 + 58*1.8 = 14.4° -->
+          <g transform="rotate(14.4 100 100)">
+            <line x1="100" y1="100" x2="100" y2="35" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" />
+          </g>
+          <circle cx="100" cy="100" r="5" fill="#0f172a" />
+        </svg>
+
+        <div class="flex-1 text-center sm:text-left">
+          <h2 class="text-xl lg:text-2xl font-bold text-slate-900">Difficulty Level:</h2>
+          <p class="text-2xl lg:text-3xl font-extrabold text-amber-500 mt-1">Moderate</p>
+          <p class="text-sm text-slate-600 mt-2">58% users answered correctly</p>
+          <a href="quiz-answer-distribution.html" class="inline-block mt-2 text-sm font-semibold text-brand-blue hover:underline">Answer Distribution</a>
+        </div>
+      </section>
+
+      <!-- Question + options -->
+      <section>
+        <p class="text-sm font-medium text-slate-500 mb-2">Not Attended</p>
+        <h3 class="text-xl lg:text-2xl font-bold text-slate-900 leading-snug">For an insurance policy nomination is allowed under __________ of the Insurance Act, 1938.</h3>
+
+        <ul class="mt-5 space-y-3 max-w-2xl">
+          <li class="flex items-center gap-3 px-4 py-3 lg:px-5 lg:py-4 rounded-2xl border border-slate-200 bg-white">
+            <span class="text-xs font-bold uppercase text-slate-400 w-5">A</span>
+            <span class="flex-1 text-base font-medium text-slate-800">Section 10</span>
+            <span class="w-5 h-5 rounded-full border-2 border-slate-300"></span>
+          </li>
+          <li class="flex items-center gap-3 px-4 py-3 lg:px-5 lg:py-4 rounded-2xl border border-slate-200 bg-white">
+            <span class="text-xs font-bold uppercase text-slate-400 w-5">B</span>
+            <span class="flex-1 text-base font-medium text-slate-800">Section 38</span>
+            <span class="w-5 h-5 rounded-full border-2 border-slate-300"></span>
+          </li>
+          <li class="flex items-center gap-3 px-4 py-3 lg:px-5 lg:py-4 rounded-2xl border-2 border-emerald-500 bg-emerald-50">
+            <span class="text-xs font-bold uppercase text-emerald-600 w-5">C</span>
+            <span class="flex-1 text-base font-semibold text-emerald-900">Section 39</span>
+            <span class="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
+              <span class="w-2 h-2 rounded-full bg-white"></span>
+            </span>
+          </li>
+          <li class="flex items-center gap-3 px-4 py-3 lg:px-5 lg:py-4 rounded-2xl border border-slate-200 bg-white">
+            <span class="text-xs font-bold uppercase text-slate-400 w-5">D</span>
+            <span class="flex-1 text-base font-medium text-slate-800">Section 45</span>
+            <span class="w-5 h-5 rounded-full border-2 border-slate-300"></span>
+          </li>
+        </ul>
+      </section>
+
+      <!-- Winners -->
+      <section>
+        <h3 class="text-xl lg:text-2xl font-bold text-slate-900 mb-4">Winners</h3>
+        <div data-component="leaderboard-podium"
+             data-first-name="Narayanan k" data-first-role="CLIA" data-first-location="Kannur" data-first-initials="NK"
+             data-second-name="T Prakashan" data-second-role="CLIA" data-second-location="KANNUR" data-second-initials="TP"
+             data-third-name="Ganesan C" data-third-role="Agent" data-third-location="Tirupur" data-third-initials="GC"></div>
+
+        <div class="rounded-2xl border border-slate-100 bg-white mt-6 overflow-hidden">
+          <div data-component="leaderboard-row" data-rank="4" data-initials="MM" data-name="M Muthuraman" data-role="Agent" data-location="Madurai" data-points="70"></div>
+          <div data-component="leaderboard-row" data-rank="5" data-initials="PP" data-name="Pandian P" data-role="DirectMarketing" data-location="NAMAKKAL" data-points="60"></div>
+          <div data-component="leaderboard-row" data-rank="6" data-initials="SJ" data-name="SRIRAM J" data-role="CLIA" data-location="Chennai" data-points="50"></div>
+          <div data-component="leaderboard-row" data-rank="7" data-initials="ML" data-name="M L Thomas MDRT" data-role="Agent" data-location="Ernakulam" data-points="40"></div>
+          <div data-component="leaderboard-row" data-rank="8" data-initials="DS" data-name="Devarajan. S" data-role="Agent" data-location="Chennai" data-points="30"></div>
+          <div data-component="leaderboard-row" data-rank="9" data-initials="VA" data-name="VALLINAYAGAM A" data-role="Agent" data-location="Tirunelveli" data-points="20"></div>
+          <div data-component="leaderboard-row" data-rank="10" data-initials="CM" data-name="chinniah M" data-role="Agent" data-location="THANJAVUR" data-points="10"></div>
+        </div>
+      </section>
+    </main>
+
+    <div data-component="footer"></div>
+  </div>
+
+  <div data-component="bottom-nav" data-active="quiz"></div>
+
+  <script src="../assets/js/partials.js"></script>
+  <script src="../assets/js/ui.js"></script>
+</body>
+</html>

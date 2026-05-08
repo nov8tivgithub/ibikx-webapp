@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz History — Mobilix IdeasCaards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../assets/js/tailwind-config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../assets/css/overrides.css" />
+</head>
+<body class="has-bottom-nav">
+  <div data-component="sidebar" data-active="quiz"></div>
+
+  <div class="with-sidebar min-h-screen">
+    <header class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100">
+      <div class="px-4 lg:px-8 h-16 flex items-center gap-3">
+        <a href="quiz.html" class="-ml-1 p-2 rounded-md hover:bg-slate-100" aria-label="Back">
+          <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></svg>
+        </a>
+        <h1 class="text-lg lg:text-xl font-semibold text-slate-900">Quiz History</h1>
+      </div>
+    </header>
+
+    <main class="px-4 lg:px-8 py-6 space-y-4">
+      <div data-component="quiz-history-item"
+           data-question="Which of the below alteration will be permitted by an insurance company?"
+           data-date="07/05/2026"
+           data-status="Not Attended" data-status-class="text-red-500"></div>
+
+      <div data-component="quiz-history-item"
+           data-question="Which of the below statement is incorrect with regards to assignment of an insurance policy?"
+           data-date="06/05/2026"
+           data-status="Not Attended" data-status-class="text-red-500"></div>
+
+      <div data-component="quiz-history-item"
+           data-question="Which of the below statement is incorrect with regards to a policy against which a loan has been taken from the insurance company?"
+           data-date="05/05/2026"
+           data-status="Not Attended" data-status-class="text-red-500"></div>
+
+      <div data-component="quiz-history-item"
+           data-question="For an insurance policy nomination is allowed under __________ of the Insurance Act, 1938."
+           data-date="04/05/2026"
+           data-status="Not Attended" data-status-class="text-red-500"></div>
+
+      <div data-component="quiz-history-item"
+           data-question="During the revival of a lapsed policy, which of the below aspect is considered most significant by the insurance company? Choose the most appropriate option."
+           data-date="02/05/2026"
+           data-status="Not Attended" data-status-class="text-red-500"></div>
+
+      <div data-component="quiz-history-item"
+           data-question="What will happen if the policyholder does not pay the premium by the due date and the grace period?"
+           data-date="01/05/2026"
+           data-status="Attended" data-status-class="text-emerald-600"></div>
+
+      <div data-component="quiz-history-item"
+           data-question="What is the maximum sum assured permitted under a term insurance policy without medical examination?"
+           data-date="30/04/2026"
+           data-status="Attended" data-status-class="text-emerald-600"></div>
+
+      <div data-component="quiz-history-item"
+           data-question="Under which section of the Income Tax Act can an individual claim deduction for life insurance premiums paid?"
+           data-date="29/04/2026"
+           data-status="Not Attended" data-status-class="text-red-500"></div>
+    </main>
+
+    <div data-component="footer"></div>
+  </div>
+
+  <div data-component="bottom-nav" data-active="quiz"></div>
+
+  <script src="../assets/js/partials.js"></script>
+  <script src="../assets/js/ui.js"></script>
+</body>
+</html>

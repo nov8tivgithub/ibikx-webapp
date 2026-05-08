@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Profile — Mobilix IdeasCaards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../assets/js/tailwind-config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../assets/css/overrides.css" />
+</head>
+<body class="has-bottom-nav">
+  <div data-component="sidebar" data-active="profile"></div>
+
+  <div class="with-sidebar min-h-screen">
+    <header class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100">
+      <div class="px-4 lg:px-8 h-16 flex items-center gap-3">
+        <button class="lg:hidden -ml-2 p-2 rounded-md hover:bg-slate-100" data-mobile-menu-toggle aria-label="Open menu">
+          <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <h1 class="text-lg lg:text-xl font-semibold text-slate-900">Profile</h1>
+      </div>
+    </header>
+
+    <main class="px-4 lg:px-8 py-6">
+      <section class="text-center">
+        <div class="w-32 h-32 rounded-full mx-auto ring-4 ring-brand-blue/40 overflow-hidden bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-2xl">DJ</div>
+        <h2 class="text-2xl font-bold text-slate-900 mt-4">David John</h2>
+        <p class="text-slate-500">test100@icwares.com</p>
+        <p class="text-sm font-semibold text-slate-600 mt-1">AGENT/LIC275668</p>
+      </section>
+
+      <div class="border-t border-slate-100 mt-6 pt-4 flex items-center justify-between">
+        <span class="text-sm font-semibold text-slate-700">Referral Code:</span>
+        <button class="inline-flex items-center gap-2 text-brand-blue font-bold" data-copy="53AA6D">
+          53AA6D
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 9h10v10H9zM5 5h10v4M5 5v10h4"/></svg>
+        </button>
+      </div>
+
+      <div class="border-t border-slate-100 mt-3 pt-3 flex items-center justify-between">
+        <span class="text-sm font-semibold text-slate-700">Expiry:</span>
+        <div class="text-right">
+          <p class="font-bold text-slate-900">31/12/2026</p>
+          <p class="text-xs text-slate-500">Expiring in 237 day(s)</p>
+        </div>
+      </div>
+
+      <section class="mt-8">
+        <div class="flex items-baseline justify-between mb-3">
+          <h3 class="text-xl font-bold text-slate-900">Certificates</h3>
+          <a href="certificates.html" class="text-sm font-semibold text-brand-blue hover:underline">View Certificates</a>
+        </div>
+        <p class="text-sm text-slate-500">You have 0 certificates</p>
+        <div class="flex gap-2 mt-3 overflow-x-auto pb-1">
+          <div class="w-14 h-16 rounded bg-slate-100"></div>
+          <div class="w-14 h-16 rounded bg-slate-100"></div>
+          <div class="w-14 h-16 rounded bg-slate-100"></div>
+          <div class="w-14 h-16 rounded bg-slate-100"></div>
+          <div class="w-14 h-16 rounded bg-slate-100"></div>
+          <div class="w-14 h-16 rounded bg-slate-100"></div>
+        </div>
+      </section>
+
+      <section class="mt-8">
+        <h3 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">General Settings</h3>
+        <div data-component="settings-row" data-title="My Account" data-subtitle="Manage your account here" data-href="account.html" data-icon-path="M16 14a4 4 0 1 0-8 0M12 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM5 21a7 7 0 0 1 14 0"></div>
+        <div data-component="settings-row" data-title="Card Subscription Plans" data-subtitle="Manage your subscriptions" data-href="card-subscriptions.html" data-icon-path="M3 7h18v10H3zM7 11h10M7 14h6"></div>
+        <div data-component="settings-row" data-title="Video Subscription Plans" data-subtitle="Remaining Credits: 10" data-href="video-subscriptions.html" data-icon-path="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z"></div>
+        <button class="w-full mt-2 px-4 py-3 rounded-2xl border border-red-200 text-red-600 text-sm font-semibold hover:bg-red-50 transition" onclick="window.location.href='login.html'">Log out</button>
+      </section>
+    </main>
+
+    <div data-component="footer"></div>
+  </div>
+
+  <div data-component="bottom-nav" data-active="profile"></div>
+
+  <script src="../assets/js/partials.js"></script>
+  <script src="../assets/js/ui.js"></script>
+</body>
+</html>

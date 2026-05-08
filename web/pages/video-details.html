@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Video details — Mobilix IdeasCaards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../assets/js/tailwind-config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../assets/css/overrides.css" />
+</head>
+<body class="has-bottom-nav">
+  <div data-component="sidebar" data-active="home"></div>
+
+  <div class="with-sidebar min-h-screen">
+    <header class="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-slate-100">
+      <div class="px-4 lg:px-8 h-16 flex items-center gap-3">
+        <a href="javascript:history.back()" class="-ml-1 p-2 rounded-md hover:bg-slate-100" aria-label="Back">
+          <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></svg>
+        </a>
+        <h1 class="text-lg lg:text-xl font-semibold text-slate-900">Plan Based &gt; Retirement</h1>
+      </div>
+    </header>
+
+    <main class="px-4 lg:px-8 py-6">
+      <div data-lang-group class="flex gap-2 overflow-x-auto pb-2 mb-6 scroll-row lang-row">
+        <button data-lang="en" class="px-4 py-1.5 rounded-full border border-slate-300 text-sm font-medium text-slate-700 is-active">English</button>
+        <button data-lang="hi" class="px-4 py-1.5 rounded-full border border-slate-300 text-sm font-medium text-slate-700">Hindi</button>
+        <button data-lang="ml" class="px-4 py-1.5 rounded-full border border-slate-300 text-sm font-medium text-slate-700">Malayalam</button>
+        <button data-lang="ta" class="px-4 py-1.5 rounded-full border border-slate-300 text-sm font-medium text-slate-700">Tamil</button>
+        <button data-lang="gu" class="px-4 py-1.5 rounded-full border border-slate-300 text-sm font-medium text-slate-700">Gujarati</button>
+      </div>
+
+      <div class="rounded-3xl overflow-hidden bg-black/90 shadow-soft mb-6 relative aspect-[3/4]">
+        <img src="https://images.unsplash.com/photo-1518156677180-95a2893f3e9f?w=800" class="absolute inset-0 w-full h-full object-cover opacity-90" onerror="this.style.display='none'" />
+        <span class="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider badge-crown">★ Premium</span>
+        <span class="absolute inset-0 flex items-center justify-center">
+          <button class="w-20 h-20 rounded-full bg-white/30 backdrop-blur flex items-center justify-center text-white">
+            <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5z"/></svg>
+          </button>
+        </span>
+        <div class="absolute left-4 right-4 bottom-4 h-1 rounded-full bg-white/30 overflow-hidden">
+          <div class="h-full w-1/12 bg-white"></div>
+        </div>
+      </div>
+
+      <button class="w-full bg-brand-gradient-r text-white text-base font-semibold rounded-xl py-3 shadow-soft" data-open-modal="personaliseVideo">Personalise This Video</button>
+    </main>
+
+    <div data-component="footer"></div>
+  </div>
+
+  <div data-component="bottom-nav" data-active="home"></div>
+  <div data-component="modal-personalise" data-id="personaliseVideo" data-kind="video"></div>
+
+  <script src="../assets/js/partials.js"></script>
+  <script src="../assets/js/ui.js"></script>
+</body>
+</html>

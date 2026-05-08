@@ -1,0 +1,29 @@
+<div id="{{id}}" class="fixed inset-0 z-50 hidden" data-modal>
+  <div class="absolute inset-0 bg-slate-900/60" data-close-modal></div>
+  <div class="relative mx-auto my-12 w-[92%] max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden">
+    <header class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
+      <h3 class="text-lg font-bold text-slate-900">Personalise this {{kind}}</h3>
+      <button class="text-slate-400 hover:text-slate-600" data-close-modal aria-label="Close">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 6l12 12M6 18L18 6"/></svg>
+      </button>
+    </header>
+    <div class="p-5 space-y-4">
+      <label class="block">
+        <span class="text-sm font-medium text-slate-700">Your name</span>
+        <input type="text" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30" placeholder="David John" />
+      </label>
+      <label class="block">
+        <span class="text-sm font-medium text-slate-700">Phone</span>
+        <input type="tel" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30" placeholder="80757 58209" />
+      </label>
+      <label class="block">
+        <span class="text-sm font-medium text-slate-700">Email</span>
+        <input type="email" class="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-blue/30" placeholder="you@example.com" />
+      </label>
+    </div>
+    <footer class="px-5 py-4 bg-slate-50 flex justify-end gap-2">
+      <button class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100" data-close-modal>Cancel</button>
+      <button class="px-4 py-2 rounded-lg text-sm font-semibold text-white bg-brand-gradient-r">Generate</button>
+    </footer>
+  </div>
+</div>

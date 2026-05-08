@@ -1,0 +1,177 @@
+/* Mobilix IdeasCaards — overrides for things Tailwind utilities can't
+   express cleanly. Keep this file small. */
+
+:root {
+  --brand-blue: #1e9bff;
+  --brand-blue-dark: #0a7fe8;
+  --brand-green: #1f7a3a;
+  --brand-gold: #f6b93b;
+}
+
+html, body { height: 100%; }
+body {
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #ffffff;
+  color: #0f172a;
+}
+
+/* Brand gradient (used on splash, sign-in CTA, headers) */
+.bg-brand-gradient {
+  background-image: linear-gradient(180deg, #1e9bff 0%, #0a7fe8 100%);
+}
+.bg-brand-gradient-r {
+  background-image: linear-gradient(135deg, #1e9bff 0%, #0a7fe8 100%);
+}
+
+/* Tab switcher: active tab gets a coloured bottom-bar */
+[data-tab].is-active {
+  color: var(--brand-blue);
+  border-bottom-color: var(--brand-blue);
+}
+
+/* Language pill active state */
+[data-lang].is-active {
+  background-color: var(--brand-blue);
+  color: #fff;
+  border-color: var(--brand-blue);
+}
+
+/* Sidebar nav active link — sidebar uses brand gradient bg, so the active
+   state is a translucent white wash with full white text. */
+.sidebar-link.is-active {
+  background-color: rgba(255, 255, 255, 0.20);
+  color: #ffffff;
+  box-shadow: inset 3px 0 0 #ffffff;
+}
+.sidebar-link.is-active svg { color: #ffffff; }
+
+/* Bottom nav active link */
+.bottom-link.is-active { color: var(--brand-blue); }
+
+/* Heart toggle */
+[data-heart].is-active svg {
+  fill: #ef4444;
+  stroke: #ef4444;
+}
+
+/* Card / video thumbnail hover lift */
+.thumb { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+.thumb:hover { transform: translateY(-2px); box-shadow: 0 12px 30px -12px rgba(0,0,0,0.25); }
+
+/* Horizontal scroll row — hide scrollbars but keep scroll snap.
+   Children get a fixed width so card / video / category tiles are sized
+   consistently across dashboard, favourites and other scrolling rows. */
+.scroll-row {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+.scroll-row::-webkit-scrollbar { display: none; }
+/* Tile widths track the category.html grid cell sizes at each breakpoint
+   so dashboard / favourites scroll rows match category page items visually. */
+.scroll-row > * { scroll-snap-align: start; flex: 0 0 auto; width: 10rem; }
+@media (min-width: 640px) {
+  .scroll-row > * { width: 13rem; }
+}
+@media (min-width: 768px) {
+  .scroll-row > * { width: 15rem; }
+}
+@media (min-width: 1024px) {
+  .scroll-row > * { width: 17rem; }
+}
+@media (min-width: 1280px) {
+  .scroll-row > * { width: 16rem; }
+}
+/* Language pill row uses .scroll-row but pills should keep their natural width. */
+.scroll-row.lang-row > * { width: auto; }
+
+/* Featured carousel on the dashboard hero — bigger slides, centred snap. */
+.featured-carousel { position: relative; }
+.featured-track {
+  display: flex;
+  gap: 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 1rem;
+  scrollbar-width: none;
+  padding: 0.5rem 1rem 1rem;
+}
+.featured-track::-webkit-scrollbar { display: none; }
+.featured-track > * {
+  scroll-snap-align: center;
+  flex: 0 0 auto;
+  width: 80%;
+  max-width: 22rem;
+}
+@media (min-width: 768px) {
+  .featured-track > * { width: 50%; max-width: 24rem; }
+}
+@media (min-width: 1024px) {
+  .featured-track > * { width: 28rem; max-width: 28rem; }
+  .featured-track { padding-inline: 0; }
+}
+.featured-prev, .featured-next {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background: rgba(255,255,255,0.95);
+  color: #0f172a;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 20px -6px rgba(0,0,0,0.25);
+  cursor: pointer;
+  z-index: 5;
+}
+.featured-prev { left: -1rem; }
+.featured-next { right: -1rem; }
+@media (min-width: 1024px) {
+  .featured-prev, .featured-next { display: flex; }
+}
+
+/* Mobile sidebar slide-in */
+@media (max-width: 1023px) {
+  .app-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    z-index: 50;
+  }
+  body.mobile-menu-open .app-sidebar { transform: translateX(0); }
+  body.mobile-menu-open::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 40;
+  }
+}
+
+/* Responsive layout shell helpers */
+@media (min-width: 1024px) {
+  .with-sidebar { padding-left: 16rem; }
+  .has-bottom-nav { padding-bottom: 0; }
+}
+@media (max-width: 1023px) {
+  .has-bottom-nav { padding-bottom: 5rem; }
+}
+
+/* Premium crown badge */
+.badge-crown {
+  background: var(--brand-gold);
+  color: #fff;
+}
+
+/* FREE pill */
+.badge-free {
+  background: #fff;
+  color: var(--brand-blue);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
