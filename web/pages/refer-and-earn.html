@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Refer & Earn — Mobilix IdeasCaards</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="../assets/js/tailwind-config.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../assets/css/overrides.css" />
+</head>
+<body class="has-bottom-nav">
+  <div data-component="sidebar" data-active="profile"></div>
+  <div class="with-sidebar min-h-screen">
+    <header class="border-b border-slate-100 bg-white">
+      <div class="px-4 lg:px-8 h-16 flex items-center gap-3">
+        <a href="profile.html" class="-ml-1 p-2 rounded-md hover:bg-slate-100" aria-label="Back">
+          <svg class="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></svg>
+        </a>
+        <h1 class="text-lg lg:text-xl font-semibold text-slate-900">Refer & Earn</h1>
+      </div>
+    </header>
+
+    <main class="px-4 lg:px-8 py-6 max-w-3xl">
+      <div class="rounded-2xl bg-brand-gradient-r text-white p-6 lg:p-8 relative overflow-hidden shadow-soft">
+        <div class="absolute inset-0 opacity-15" style="background-image: linear-gradient(rgba(255,255,255,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.2) 1px, transparent 1px); background-size: 32px 32px;"></div>
+        <div class="relative text-center">
+          <div class="text-6xl mb-2">🎁</div>
+          <h2 class="text-2xl lg:text-3xl font-extrabold">Invite friends, earn rewards</h2>
+          <p class="mt-2 text-white/90 max-w-md mx-auto">Share your referral code and earn wallet points each time a friend signs up and subscribes.</p>
+        </div>
+      </div>
+
+      <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-soft">
+        <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Your referral code</p>
+        <div class="mt-3 flex items-center gap-3">
+          <p class="text-3xl font-extrabold text-brand-blue">53AA6D</p>
+          <button class="ml-auto inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-gradient-r text-white text-sm font-semibold" data-copy="53AA6D">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 9h10v10H9zM5 5h10v4M5 5v10h4"/></svg>
+            Copy
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="rounded-2xl bg-white border border-slate-200 p-5 text-center">
+          <div class="text-3xl mb-2">📤</div>
+          <p class="font-bold text-slate-900">1. Share</p>
+          <p class="text-xs text-slate-500 mt-1">Send your code to friends and family.</p>
+        </div>
+        <div class="rounded-2xl bg-white border border-slate-200 p-5 text-center">
+          <div class="text-3xl mb-2">📝</div>
+          <p class="font-bold text-slate-900">2. They join</p>
+          <p class="text-xs text-slate-500 mt-1">Friends sign up using your code.</p>
+        </div>
+        <div class="rounded-2xl bg-white border border-slate-200 p-5 text-center">
+          <div class="text-3xl mb-2">💰</div>
+          <p class="font-bold text-slate-900">3. You earn</p>
+          <p class="text-xs text-slate-500 mt-1">Wallet points credited automatically.</p>
+        </div>
+      </div>
+
+      <div class="mt-6 flex flex-wrap items-center gap-2">
+        <button class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500 text-white text-sm font-semibold">WhatsApp</button>
+        <button class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-600 text-white text-sm font-semibold">Facebook</button>
+        <button class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-sky-500 text-white text-sm font-semibold">Twitter</button>
+        <a href="wallet.html" class="ml-auto text-sm font-semibold text-brand-blue hover:underline">View Wallet &rarr;</a>
+      </div>
+    </main>
+
+    <div data-component="footer"></div>
+  </div>
+  <div data-component="bottom-nav" data-active="profile"></div>
+  <script src="../assets/js/partials.js"></script>
+  <script src="../assets/js/ui.js"></script>
+</body>
+</html>
