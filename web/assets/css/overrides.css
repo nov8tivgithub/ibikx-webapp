@@ -112,6 +112,41 @@ body {
 /* Language pill row uses .scroll-row but pills should keep their natural width. */
 .scroll-row.lang-row > * { width: auto; }
 
+/* Wrapper added by JS so prev/next arrows can be absolutely positioned
+   over a scroll-row. Arrows fade in on hover when there's room to scroll
+   in that direction (JS toggles .is-visible based on scrollLeft). */
+.scroll-row-wrap { position: relative; }
+.scroll-row-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 18px -6px rgba(15, 23, 42, 0.35);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  cursor: pointer;
+  z-index: 10;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, background 0.15s ease, transform 0.15s ease;
+}
+.scroll-row-arrow-prev { left: 0.25rem; }
+.scroll-row-arrow-next { right: 0.25rem; }
+.scroll-row-wrap:hover .scroll-row-arrow.is-visible,
+.scroll-row-arrow.is-visible:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+.scroll-row-arrow:hover { background: #ffffff; transform: translateY(-50%) scale(1.06); }
+.scroll-row.is-dragging { cursor: grabbing; scroll-behavior: auto; }
+.scroll-row.is-dragging > * { pointer-events: none; }
+
 /* Wrapping tile grid — same tile size as scroll-row, but flows to
    multiple rows. Used on category / subcategory / my-videos / free-videos. */
 .tile-grid {
@@ -180,12 +215,36 @@ body {
   opacity: 0.35;
   z-index: 3;
 }
+/* Outer pairs — revealed on wide / extra-wide screens by JS adding the
+   class. Off-screen on narrow viewports, clipped by carousel overflow. */
+.cover-slide.pos-edge2-l {
+  transform: translateX(-245%) scale(0.5);
+  opacity: 0.22;
+  z-index: 2;
+}
+.cover-slide.pos-edge2-r {
+  transform: translateX(245%) scale(0.5);
+  opacity: 0.22;
+  z-index: 2;
+}
+.cover-slide.pos-edge3-l {
+  transform: translateX(-290%) scale(0.4);
+  opacity: 0.14;
+  z-index: 2;
+}
+.cover-slide.pos-edge3-r {
+  transform: translateX(290%) scale(0.4);
+  opacity: 0.14;
+  z-index: 2;
+}
 .cover-slide.pos-hidden {
   transform: scale(0.4);
   opacity: 0;
   pointer-events: none;
   z-index: 1;
 }
+.cover-carousel.is-dragging .cover-slide { transition: none; }
+.cover-carousel { touch-action: pan-y; user-select: none; }
 
 /* Prev/next arrows for the cover carousel — pinned next to the active card. */
 .cover-prev, .cover-next {
@@ -252,12 +311,18 @@ body {
 .icon-link {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  justify-content: center;
   height: 2.75rem;
   padding: 0 0.6rem;
   border-radius: 0.85rem;
   color: #475569;
-  transition: background 0.18s ease, color 0.18s ease;
+  transition: background 0.18s ease, color 0.18s ease, margin-right 0.25s ease;
+}
+.icon-sidebar:hover .icon-link {
+  justify-content: flex-start;
+}
+.icon-sidebar:hover .icon-avatar {
+  margin-right: 0.5rem;
 }
 .icon-link:hover {
   background: rgba(30, 155, 255, 0.10);
@@ -277,9 +342,16 @@ body {
   font-weight: 500;
   white-space: nowrap;
   opacity: 0;
-  transition: opacity 0.18s ease;
+  max-width: 0;
+  margin-left: 0;
+  overflow: hidden;
+  transition: opacity 0.18s ease, max-width 0.25s ease, margin-left 0.25s ease;
 }
-.icon-sidebar:hover .icon-label { opacity: 1; }
+.icon-sidebar:hover .icon-label {
+  opacity: 1;
+  max-width: 10rem;
+  margin-left: 0.75rem;
+}
 
 /* Page content sits to the right of the icon sidebar (3.5rem wide at rest).
    Stack as a flex column so the footer sticks to the bottom when the

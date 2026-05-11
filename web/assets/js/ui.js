@@ -268,8 +268,22 @@
       const n = slides.length;
       if (!n) return;
       let active = 0;
-      const positions = ['pos-active', 'pos-prev', 'pos-next', 'pos-edge-l', 'pos-edge-r', 'pos-hidden'];
-      // Shortest signed distance from `i` to `active`, wrapping around.
+      const positions = [
+        'pos-active', 'pos-prev', 'pos-next',
+        'pos-edge-l', 'pos-edge-r',
+        'pos-edge2-l', 'pos-edge2-r',
+        'pos-edge3-l', 'pos-edge3-r',
+        'pos-hidden',
+      ];
+      // How many neighbours to show on each side of the active slide,
+      // capped by what the carousel has room for circularly.
+      function visibleRange() {
+        const w = window.innerWidth;
+        let target = 2;
+        if (w >= 1536) target = 4;
+        else if (w >= 1280) target = 3;
+        return Math.min(target, Math.floor((n - 1) / 2));
+      }
       function circOffset(i) {
         let off = i - active;
         if (off > n / 2) off -= n;
@@ -277,31 +291,72 @@
         return off;
       }
       function render() {
+        const range = visibleRange();
         slides.forEach((slide, i) => {
           positions.forEach((c) => slide.classList.remove(c));
           const offset = circOffset(i);
           if (offset === 0) slide.classList.add('pos-active');
           else if (offset === -1) slide.classList.add('pos-prev');
           else if (offset === 1) slide.classList.add('pos-next');
-          else if (offset === -2) slide.classList.add('pos-edge-l');
-          else if (offset === 2) slide.classList.add('pos-edge-r');
+          else if (offset === -2 && range >= 2) slide.classList.add('pos-edge-l');
+          else if (offset === 2 && range >= 2) slide.classList.add('pos-edge-r');
+          else if (offset === -3 && range >= 3) slide.classList.add('pos-edge2-l');
+          else if (offset === 3 && range >= 3) slide.classList.add('pos-edge2-r');
+          else if (offset === -4 && range >= 4) slide.classList.add('pos-edge3-l');
+          else if (offset === 4 && range >= 4) slide.classList.add('pos-edge3-r');
           else slide.classList.add('pos-hidden');
         });
       }
-      root.querySelector('.cover-prev')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        active = (active - 1 + n) % n;
-        render();
-      });
-      root.querySelector('.cover-next')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        active = (active + 1) % n;
-        render();
-      });
-      // Click a non-active slide to bring it forward; clicking the active slide
-      // follows its <a href> link (default behaviour).
+      function next() { active = (active + 1) % n; render(); }
+      function prev() { active = (active - 1 + n) % n; render(); }
+      root.querySelector('.cover-prev')?.addEventListener('click', (e) => { e.preventDefault(); prev(); });
+      root.querySelector('.cover-next')?.addEventListener('click', (e) => { e.preventDefault(); next(); });
+
+      // Pointer-drag: swipe left/right (mouse or touch) to advance one slide.
+      // Threshold is 50px — under that, treat as a tap so a non-active slide
+      // can still be clicked to focus it (or active slide follows its href).
+      let dragStartX = null;
+      let dragDx = 0;
+      let dragging = false;
+      function onDown(e) {
+        if (e.target.closest('.cover-prev, .cover-next')) return;
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        dragStartX = e.clientX;
+        dragDx = 0;
+        dragging = false;
+      }
+      function onMove(e) {
+        if (dragStartX === null) return;
+        dragDx = e.clientX - dragStartX;
+        if (!dragging && Math.abs(dragDx) > 8) {
+          dragging = true;
+          root.classList.add('is-dragging');
+        }
+      }
+      function onUp() {
+        if (dragStartX === null) return;
+        const dx = dragDx;
+        dragStartX = null;
+        root.classList.remove('is-dragging');
+        if (Math.abs(dx) > 50) {
+          dx < 0 ? next() : prev();
+        }
+        // dragging stays true through the immediate click; reset on next tick.
+        if (dragging) setTimeout(() => { dragging = false; }, 0);
+      }
+      root.addEventListener('pointerdown', onDown);
+      root.addEventListener('pointermove', onMove);
+      root.addEventListener('pointerup', onUp);
+      root.addEventListener('pointercancel', onUp);
+      root.addEventListener('pointerleave', onUp);
+      // Suppress link navigation / focus-change when the pointer was dragging.
+      root.addEventListener('click', (e) => {
+        if (dragging) { e.preventDefault(); e.stopPropagation(); }
+      }, true);
+
       slides.forEach((slide, i) => {
         slide.addEventListener('click', (e) => {
+          if (dragging) return;
           if (i !== active) {
             e.preventDefault();
             active = i;
@@ -309,7 +364,106 @@
           }
         });
       });
+
+      // Visible-range depends on viewport width — re-render on resize.
+      let resizeTimer;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(render, 120);
+      });
+
       render();
+    });
+  }
+
+  function bindScrollRows(scope) {
+    const arrowSvg = (dir) => `<svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="${dir === 'prev' ? 'M15 18l-6-6 6-6' : 'M9 18l6-6-6-6'}"/></svg>`;
+    scope.querySelectorAll('.scroll-row').forEach((row) => {
+      if (row.__rowBound) {
+        // Partials may have just injected new children — re-measure.
+        row.__rowUpdate?.();
+        return;
+      }
+      row.__rowBound = true;
+      // Skip the language pill variant — short pills don't need scroll arrows.
+      if (row.classList.contains('lang-row')) return;
+
+      // Insert a relative wrapper so the arrows can be absolutely positioned
+      // over the row without disturbing the existing layout.
+      const wrap = document.createElement('div');
+      wrap.className = 'scroll-row-wrap';
+      row.parentNode.insertBefore(wrap, row);
+      wrap.appendChild(row);
+
+      const prev = document.createElement('button');
+      prev.type = 'button';
+      prev.className = 'scroll-row-arrow scroll-row-arrow-prev';
+      prev.setAttribute('aria-label', 'Scroll left');
+      prev.innerHTML = arrowSvg('prev');
+      const next = document.createElement('button');
+      next.type = 'button';
+      next.className = 'scroll-row-arrow scroll-row-arrow-next';
+      next.setAttribute('aria-label', 'Scroll right');
+      next.innerHTML = arrowSvg('next');
+      wrap.appendChild(prev);
+      wrap.appendChild(next);
+
+      function updateArrows() {
+        const max = row.scrollWidth - row.clientWidth;
+        const canScroll = max > 4;
+        prev.classList.toggle('is-visible', canScroll && row.scrollLeft > 4);
+        next.classList.toggle('is-visible', canScroll && row.scrollLeft < max - 4);
+      }
+      row.__rowUpdate = updateArrows;
+      function step() {
+        const child = row.firstElementChild;
+        if (child) return child.offsetWidth + 16; // tile width + gap (1rem)
+        return Math.max(row.clientWidth * 0.7, 200);
+      }
+      prev.addEventListener('click', () => row.scrollBy({ left: -step(), behavior: 'smooth' }));
+      next.addEventListener('click', () => row.scrollBy({ left: step(), behavior: 'smooth' }));
+      row.addEventListener('scroll', updateArrows, { passive: true });
+
+      // Mouse drag-to-scroll. Touch devices keep native overflow scrolling.
+      let startX = 0, startScroll = 0, isDown = false, dragged = false;
+      row.addEventListener('pointerdown', (e) => {
+        if (e.pointerType !== 'mouse') return;
+        if (e.button !== 0) return;
+        if (e.target.closest('.scroll-row-arrow')) return;
+        isDown = true; dragged = false;
+        startX = e.clientX;
+        startScroll = row.scrollLeft;
+      });
+      row.addEventListener('pointermove', (e) => {
+        if (!isDown) return;
+        const dx = e.clientX - startX;
+        if (!dragged && Math.abs(dx) > 5) {
+          dragged = true;
+          row.classList.add('is-dragging');
+        }
+        if (dragged) {
+          row.scrollLeft = startScroll - dx;
+          e.preventDefault();
+        }
+      });
+      function endDrag() {
+        if (!isDown) return;
+        isDown = false;
+        row.classList.remove('is-dragging');
+        if (dragged) setTimeout(() => { dragged = false; }, 0);
+      }
+      row.addEventListener('pointerup', endDrag);
+      row.addEventListener('pointercancel', endDrag);
+      row.addEventListener('pointerleave', endDrag);
+      row.addEventListener('click', (e) => {
+        if (dragged) { e.preventDefault(); e.stopPropagation(); }
+      }, true);
+
+      // Images load asynchronously and change scrollWidth — re-check a few times.
+      updateArrows();
+      setTimeout(updateArrows, 150);
+      setTimeout(updateArrows, 600);
+      window.addEventListener('resize', updateArrows);
     });
   }
 
@@ -326,6 +480,7 @@
     bindPersonalise(scope);
     bindShare(scope);
     bindCoverCarousels(scope);
+    bindScrollRows(scope);
     applyNavActive(scope);
   }
 

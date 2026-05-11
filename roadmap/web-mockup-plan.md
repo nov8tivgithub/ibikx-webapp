@@ -1,5 +1,12 @@
 # Mobilix IdeasCaards — Web HTML Mockup Plan
 
+> **Note (updated):** the original plan (Apr 2026) targeted a sidebar +
+> mobile-bottom-nav layout with 15 reference screens. After several rounds of
+> iteration the mockup grew to ~30 pages and the navigation was reworked
+> several times. This file has been refreshed to reflect the current
+> structure. The code under `web/` is the source of truth — sections marked
+> *"see code"* are not duplicated here so the document doesn't drift.
+
 ## Context
 
 Mobilix IdeasCaards is an existing mobile app for insurance agents. It lets them browse / personalise / share professionally designed insurance-themed **cards** and **videos** organised by life-stage and policy categories, plus an **Idea Bytes** news feed, a daily **Quiz** with leaderboard, and a **Profile / Subscriptions** module.
@@ -9,157 +16,132 @@ The team needs a **responsive web HTML mockup** of the entire app that mirrors t
 User-confirmed decisions:
 - **CSS framework:** Tailwind CSS (loaded via CDN in mockups; React port will use the regular Tailwind build).
 - **Componentisation:** Each reusable section lives in its own `components/*.html` partial; a tiny JS loader fetches and injects them into pages at runtime.
-- **Scope:** All 15 screens identified from `app_screenshots/`.
-- **Desktop layout:** Sidebar + content area on desktop/tablet; bottom nav on mobile.
+- **Scope:** All screens identified from `app_screenshots/` plus settings sub-pages (~30 pages total — see `web/pages/`).
+- **Desktop layout (current):** thin icon-only left sidebar (3.5 rem wide, transparent) that **expands to 12 rem on hover** to reveal labels. The mobile bottom-nav was retired during iteration; `bottom-nav.html` is kept as a no-op placeholder for backwards-compat with existing pages, and `with-sidebar` now adds left padding instead of bottom padding.
 
-## Folder structure (new)
+## Folder structure (current)
 
 ```
 mobilix/
-├── app_screenshots/                  (existing reference)
-├── web/                              ← all mockup output lives here
-│   ├── index.html                    redirects to login.html
-│   ├── pages/
-│   │   ├── splash.html
-│   │   ├── login.html
-│   │   ├── signup.html
-│   │   ├── forgot-password.html
-│   │   ├── dashboard.html            (Home — Videos / Cards tabs)
-│   │   ├── my-videos.html
-│   │   ├── free-videos.html
-│   │   ├── category.html             (Plan Based / Policy Explainer / etc.)
-│   │   ├── subcategory.html          (Videos / Cards tabs inside a category)
-│   │   ├── card-details.html
-│   │   ├── video-details.html
-│   │   ├── favourites.html
-│   │   ├── bytes.html                (Idea Bytes list)
-│   │   ├── byte-details.html
-│   │   ├── quiz.html
-│   │   ├── leaderboard.html
-│   │   ├── profile.html
-│   │   ├── account.html
-│   │   ├── card-subscriptions.html
-│   │   ├── video-subscriptions.html
-│   │   └── certificates.html
-│   ├── components/                   ← each = future React component
-│   │   ├── sidebar.html              desktop primary nav
-│   │   ├── bottom-nav.html           mobile primary nav
-│   │   ├── topbar.html               page title + back button + profile chip
-│   │   ├── auth-shell.html           branded blue panel + form area (login/signup/forgot)
-│   │   ├── tab-switcher.html         Videos / Cards tab pair (also reused for language tabs)
-│   │   ├── section-header.html       title + "View All" right-link
-│   │   ├── card-thumbnail.html       card preview with FREE / crown / heart
-│   │   ├── video-thumbnail.html      video preview with play / FREE / crown / heart
-│   │   ├── category-tile.html        large image tile with overlaid label (Plan Based grid)
-│   │   ├── byte-list-item.html       hero image + title + meta + excerpt
-│   │   ├── stat-card.html            "37 / Total Credits Purchased"
-│   │   ├── leaderboard-podium.html   top 3 with crown / medals
-│   │   ├── leaderboard-row.html      single rank row
-│   │   ├── settings-row.html         icon + title + subtitle row
-│   │   ├── modal-personalise.html    placeholder personalisation modal
-│   │   ├── button-primary.html       reference snippet for the brand gradient CTA
-│   │   └── footer.html
-│   ├── assets/
-│   │   ├── css/
-│   │   │   ├── tailwind.config.js    brand colours, fonts (referenced by CDN config)
-│   │   │   └── overrides.css         only what Tailwind utilities can't express
-│   │   ├── js/
-│   │   │   ├── partials.js           runs on DOMContentLoaded; replaces every
-│   │   │   │                         <div data-component="X"></div> with components/X.html
-│   │   │   └── ui.js                 minimal interactivity: tab switching, mobile menu
-│   │   │                             toggle, favourite toggle, modal open/close
-│   │   └── img/                      logo.png + any extracted card/video thumbnails
-│   └── README.md                     how to run + how each partial maps to a React component
+├── app_screenshots/                  reference screenshots from the mobile app
+├── roadmap/
+│   └── web-mockup-plan.md            this file
+└── web/
+    ├── index.html                    redirects to pages/login.html
+    ├── README.md                     how to run + partial → React component map
+    ├── pages/                        ~30 HTML files — see directory listing
+    ├── components/                   reusable partials — each = one React component
+    └── assets/
+        ├── css/overrides.css         classes Tailwind utilities can't express
+        ├── js/
+        │   ├── partials.js           fetches components/*.html, fills {{name}} from data-*
+        │   ├── ui.js                 tabs, hearts, modals, share dialog, carousel,
+        │   │                         personalise loader, sidebar, mobile menu, copy
+        │   └── tailwind-config.js    brand colours / Inter font for the Play CDN
+        └── img/                      logo.png, certificate-placeholder.jpg,
+                                      quiz-banner-bg.png, quiz-banner-icon.png, …
 ```
 
-Naming rule: every `components/*.html` filename = the future React component name in kebab-case (`card-thumbnail.html` → `<CardThumbnail />`). Each partial has a single root element with a stable `data-component` attribute so the React port is mechanical.
+Naming rule (still holds): every `components/*.html` filename = the future React component name in kebab-case. Each partial has a single root element with a stable selector hook so the React port is mechanical.
 
-## Component approach
+## Pages (live list)
 
-**Partial loader (`assets/js/partials.js`):**
+The active page set lives under `web/pages/` — see the directory itself for the
+authoritative list. Current count: **31** files including:
 
-```js
-// Pseudocode
-document.querySelectorAll('[data-component]').forEach(async el => {
-  const name = el.dataset.component;
-  const html = await fetch(`/web/components/${name}.html`).then(r => r.text());
-  el.outerHTML = html;
-});
-```
+- **Auth:** `login`, `signup` (iframes the external `onlineregistration` URL), `forgot-password`. *No splash screen — `index.html` redirects straight to `login`.*
+- **Home / browse:** `dashboard`, `my-videos`, `free-videos`, `category`, `subcategory`, `card-details`, `video-details`, `personalised-card`, `personalised-video`.
+- **Favourites / Bytes:** `favourites`, `bytes`, `byte-details`, `byte-details1` (alt layout).
+- **Quiz family:** `quiz`, `leaderboard`, `quiz-history`, `quiz-history-detail`, `quiz-answer-distribution`.
+- **Profile family:** `profile`, `account`, `my-profile`, `change-password`, `card-subscriptions`, `card-subscriptions-explore`, `video-subscriptions`, `certificates`, `wallet`, `refer-and-earn`, `about`.
 
-Each page declares its layout like:
+## Components (live list — partial → React component)
+
+| Partial                       | React component       | Notes |
+| ----------------------------- | --------------------- | ----- |
+| `sidebar.html`                | `<Sidebar />`         | Icon-only, expands on hover. Reads `data-active`. |
+| `bottom-nav.html`             | `<BottomNav />`       | **Stub** (renders nothing). Kept so pages with `data-component="bottom-nav"` still work. |
+| `topbar.html`                 | `<Topbar />`          | Title + back button. Each page inlines its own variant; this partial is a reference template. |
+| `auth-shell.html`             | `<AuthShell />`       | Brand-blue panel + form column. Inlined per page in current build. |
+| `tab-switcher.html`           | `<TabSwitcher />`     | Underline tabs. Segmented variant uses `.segmented` class wrapper instead. |
+| `section-header.html`         | `<SectionHeader />`   | Title + View All link. |
+| `card-thumbnail.html`         | `<CardThumbnail />`   | Sizes from `.scroll-row > *` / `.tile-grid > *`. |
+| `video-thumbnail.html`        | `<VideoThumbnail />`  | Same sizing rules. |
+| `category-tile.html`          | `<CategoryTile />`    | Same sizing rules. |
+| `byte-list-item.html`         | `<ByteListItem />`    | Share count is now a `data-share` button. |
+| `stat-card.html`              | `<StatCard />`        | |
+| `leaderboard-podium.html`     | `<LeaderboardPodium/>`| Now includes `data-*-points`. |
+| `leaderboard-row.html`        | `<LeaderboardRow />`  | Column layout: rank · avatar · name · ROLE · location · points. |
+| `leaderboard-rank-row.html`   | `<LeaderboardRankRow/>`| **New.** Gradient gold/silver/bronze top-3 row used on This-Month / This-Year tabs. |
+| `quiz-history-item.html`      | `<QuizHistoryItem />` | **New.** Question card with date + status. |
+| `settings-row.html`           | `<SettingsRow />`     | Subtitle line auto-hides when empty. |
+| `modal-personalise.html`      | `<PersonaliseModal />`| No longer used — Personalise button now triggers the loader directly. Kept as a reference. |
+| `button-primary.html`         | `<ButtonPrimary />`   | Reference snippet. |
+| `footer.html`                 | `<Footer />`          | Pinned to viewport bottom on short pages via flex-column wrapper. |
+
+Components added during iteration: `leaderboard-rank-row`, `quiz-history-item`.
+
+## Component approach (unchanged)
+
+Partial loader (`assets/js/partials.js`) replaces every `<div data-component="X" data-foo="bar"></div>` placeholder with the contents of `components/X.html`, with `{{foo}}` placeholders filled from `data-*` attributes (kebab-case → camelCase via `dataset`). It recurses so partials can include other partials.
+
+Pages declare layout like:
 
 ```html
-<div data-component="sidebar"></div>
-<main>
-  <div data-component="topbar" data-title="My Videos"></div>
-  ...
-</main>
-<div data-component="bottom-nav"></div>
+<div data-component="sidebar" data-active="home"></div>
+<main>…</main>
+<div data-component="footer"></div>
 ```
 
-Data attributes (`data-title`, `data-active`, etc.) carry per-instance props — these become React `props` at port time. A short note in `README.md` documents this contract.
-
-**Why this works for React conversion:**
+Why this still works for React conversion:
 - 1 partial = 1 React component.
-- Page files become page-level components (`pages/Dashboard.tsx`).
 - `data-*` attributes → React props.
 - Tailwind classes survive verbatim.
+- All interactivity is owned by `ui.js` and binds via `data-*` hooks (e.g. `data-tab`, `data-heart`, `data-share`, `data-personalise-go`, `data-carousel`, `data-pill`, `data-month-picker`).
 
-## Brand system (extracted from screenshots)
+## Brand system (current tokens)
 
-- **Primary blue:** gradient ~`#1E9BFF → #0A7FE8` (login button, headers, active tab).
-- **Brand accent green:** ~`#1F7A3A` (logo "ideas" text).
-- **Premium crown badge:** golden yellow.
-- **FREE badge:** white pill with light blue text.
-- **Background:** white surfaces with subtle grey card borders, generous rounding (`rounded-2xl`).
-- **Typography:** clean sans-serif (Inter or system-ui), bold large titles, regular body.
+- **Primary blue:** `#1E9BFF → #0A7FE8` (`.bg-brand-gradient` / `.bg-brand-gradient-r`).
+- **Accent green:** `#1F7A3A`.
+- **Premium crown badge:** `#F6B93B`.
+- **FREE badge:** white pill, brand-blue text.
+- **Background:** white surfaces with subtle slate borders, generous rounding (`rounded-2xl`).
+- **Typography:** Inter via Google Fonts.
 
-Configure these in `tailwind.config.js` under `theme.extend.colors.brand` so the React port reuses the same tokens.
+Notable known issue: the Tailwind Play CDN sometimes injects its own utilities AFTER `overrides.css`, so `bg-brand-blue` config-extended utility loses to same-specificity rules. Solution applied throughout: brand colours that absolutely must render are written either with `!important` in `overrides.css` (e.g. segmented-tab active state, month-picker active month) or as inline `style="background-color: #1e9bff;"` (e.g. the byte-details Share button, answer-distribution bars). React port avoids this entirely with the proper Tailwind build.
 
-## Responsive breakpoints
+## Responsive layout
 
-- **Mobile (< 768px):** single column, sticky bottom-nav visible, sidebar hidden.
-- **Tablet (768–1023px):** 2-column card grids, collapsed icon-only sidebar, bottom-nav hidden.
-- **Desktop (≥ 1024px):** 3–4-column grids on listing pages, full sidebar with labels, max content width ~1280px centred.
+- **Mobile (<lg):** single column. Sidebar collapses to its 3.5 rem rail; tile grids fall back to wrap. Carousel uses smaller slide widths.
+- **Desktop (≥lg):** sidebar shows full labels on hover; pages fill the content area with the new `tile-grid` (10rem → 17rem cell size matching scroll-rows). Footer is pinned to viewport bottom on short pages.
 
-## Per-screen content (what each page must render)
+## Per-screen content
 
-Numbered to match screenshot filenames in `app_screenshots/`:
+*See the actual files in `web/pages/`.* The original plan included a 15-item per-screen breakdown which has since drifted significantly (carousel design changed from card-stack to coverflow, bottom-nav removed, Profile gained 5 sub-pages, Quiz gained 3 sub-pages, signup became an iframe to the live registration URL, etc.). Maintaining a parallel description here would just decay; the HTML is short and self-explanatory.
 
-1. **splash.html** — full-bleed blue gradient, centred MOBILIX + ideas Caards logo. Auto-redirects in JS after 1.2s.
-2. **login.html** — `auth-shell` partial; email + password (with eye-toggle), Forgot Password link, Sign In gradient button, "New to Ideascaards? Join now" footer link.
-3. **signup.html / forgot-password.html** — same `auth-shell`, different form fields.
-4. **dashboard.html** — sidebar + topbar `Hi, David John 👋` greeting, sub-text "Explore our templates", `tab-switcher` (Videos active / Cards), featured-content carousel (large card stack with peeking neighbours), inline section "Videos" with two large tiles **My Videos** + **Free Videos**, then horizontal scroll rows: **Policy Explainer**, **Plan Based**, **Insurance Concepts**, **Seasonal Greetings**, **Festival Greetings**, **Event Greetings**, each with `section-header` + `View All`.
-5. **my-videos.html** — back arrow + "My Videos", three `stat-card`s (Total Credits Purchased / Credits Used / Remaining Credits), 2-col grid of `video-thumbnail`s (premium = crown, otherwise FREE).
-6. **free-videos.html** — back + title, 2-col grid of `video-thumbnail` (all FREE).
-7. **category.html** — back + e.g. "Plan Based", 2-col grid of `category-tile`s (Retirement, Child Education, Children Marriage, Health, Endowment, Money Back, Joint Life, Women Insurance, Term Insurance). Reused for Insurance Concepts, Seasonal Greetings, Festival Greetings, Event Greetings, Policy Explainer.
-8. **subcategory.html** — breadcrumb-style title "Plan Based > Retirement", `tab-switcher` Videos / Cards, 2-col grid of the matching thumbnail component.
-9. **card-details.html** — breadcrumb title, language pill row (English / Hindi / Malayalam / Tamil / Gujarati …), full-bleed card preview, gradient **Personalise This Card** CTA pinned to bottom on mobile / inline on desktop.
-10. **video-details.html** — same as card-details but with video player (poster image + play button), crown badge if premium, **Personalise This Video** CTA.
-11. **favourites.html** — bottom-nav active = Favourites; sections Plan Based / Insurance Concepts / Seasonal Greetings / Festival Greetings / Event Greetings, each a horizontal row of saved tiles + View All.
-12. **bytes.html** — title "Idea Bytes", vertical list of `byte-list-item` (hero image, brand avatar, title, "3 days ago", views/shares, excerpt).
-13. **byte-details.html** — back + "Idea Bytes", hero image, title, meta row, full body, Read More / share actions.
-14. **quiz.html** — title "Quiz" + Prizes & Rules link, blue countdown banner ("Quiz will begin at 06:00 PM, Starting in 2h 28m 54s"), Badges row (`Badges` title + View History link, 7 placeholder badge icons), Latest Winners date, podium of top 3 (crown on #1), then "Leaderboard" link → ranks 4–10 list.
-15. **leaderboard.html** — full leaderboard list (reusing `leaderboard-row`).
-16. **profile.html** — bottom-nav active = Profile; circular avatar, name, email, agent code, **Referral Code** with copy icon, **Expiry** with days-remaining, Certificates row (`You have 0 certificates` + View Certificates), then **General Settings**: My Account / Card Subscription Plans / Video Subscription Plans / (logout) — each a `settings-row` linking to the relevant sub-page.
-17. **account.html / card-subscriptions.html / video-subscriptions.html / certificates.html** — straight-forward sub-pages reachable from Profile; standard form / list layouts using existing components.
+## Notable interactions wired in `ui.js`
 
-## Critical files to create
-
-- `web/index.html`
-- `web/assets/js/partials.js` — partial loader.
-- `web/assets/js/ui.js` — tab switch, mobile menu toggle, heart toggle, modal open/close, copy-to-clipboard for referral code.
-- `web/assets/css/overrides.css` — small set of custom rules (e.g. card stack peek effect, gradient backgrounds Tailwind doesn't ship out of the box).
-- `web/components/sidebar.html`, `bottom-nav.html`, `topbar.html`, `auth-shell.html`, `tab-switcher.html`, `section-header.html`, `card-thumbnail.html`, `video-thumbnail.html`, `category-tile.html`, `byte-list-item.html`, `stat-card.html`, `leaderboard-podium.html`, `leaderboard-row.html`, `settings-row.html`, `modal-personalise.html`, `footer.html`.
-- 21 page files under `web/pages/`.
-- `web/README.md` — how to run, partial-loader contract, brand tokens, mapping table from partial → React component.
+- `data-tabs` / `data-tab` / `data-tab-panel` — generic tab switcher (used as both underline tabs and as `.segmented` pill control).
+- `data-heart` — favourite toggle.
+- `data-modal` / `data-open-modal` / `data-close-modal` — generic modal.
+- `data-mobile-menu-toggle` — sidebar slide-in (legacy; current sidebar is hover-driven instead).
+- `data-copy` — copy-to-clipboard with "Copied!" feedback.
+- `data-password-toggle` — password eye.
+- `data-lang-group` / `data-lang` — language pill row.
+- `data-pill-group` / `data-pill` — generic filter pill row (leaderboard).
+- `data-month-picker` / `data-year-btn` / `data-year-options` / `data-month` / `data-fy` — month / year / FY pickers.
+- `data-personalise-go` (+ optional `data-kind`) — shows transparent loader, navigates to `personalised-card.html` or `personalised-video.html` after 1.5 s.
+- `data-share` (+ optional `data-share-title`, `data-share-url`) — opens a share dialog (WhatsApp / Facebook / Twitter / LinkedIn / Copy link).
+- `.cover-carousel` / `.cover-slide` / `.cover-prev` / `.cover-next` — coverflow-style featured carousel with circular looping.
+- `pageshow` (persisted) — shows brief loader on back-navigation from BFCache.
 
 ## Verification
 
 1. **Serve via XAMPP:** start Apache, open `http://localhost/git/mobilix/web/` — the loader needs HTTP (not `file://`) for `fetch()` to work.
-2. **Visual parity check:** open each of the 15 screens side-by-side with its screenshot in `app_screenshots/`; layout, sections, badges, CTAs and bottom-nav active state should match.
+2. **Visual parity check:** open each page side-by-side with its screenshot in `app_screenshots/`; layout, sections, badges and CTAs should match.
 3. **Component reuse check:** edit a single partial (e.g. `card-thumbnail.html`) — confirm every page that uses it updates.
-4. **Responsive check:** in Chrome DevTools toggle device toolbar through 375px (mobile), 768px (tablet) and 1280px (desktop); confirm sidebar appears ≥1024px and bottom-nav appears <768px, grids reflow to 2 / 3 / 4 columns.
-5. **Interactivity smoke test:** tab switching on Dashboard / Subcategory / Card Details, heart toggle on a thumbnail, mobile menu open/close, "Personalise" modal open/close, copy referral code on Profile.
-6. **No inline styles audit:** grep `style="` across `web/` — should return zero results outside necessary background-image inline assignments on tiles.
+4. **Responsive check:** Chrome DevTools device toolbar through 375 / 768 / 1280 px; sidebar should expand on hover ≥`lg`, tile grids reflow at each breakpoint.
+5. **Interactivity smoke test:** tab switch on Dashboard / Subcategory / Card Details, heart toggle, share dialog (byte list + details), Personalise → loader → personalised page → back, leaderboard month/year pickers, sidebar hover-expand, copy referral code on Profile.
+6. **No inline styles audit:** grep `style="` across `web/` — should return only:
+   - `background-image: url(…)` on tiles / hero bands.
+   - The brand-blue inline workarounds noted above (Share button, answer-distribution bars, etc.).
