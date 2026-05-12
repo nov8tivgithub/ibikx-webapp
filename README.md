@@ -22,38 +22,30 @@ npm run preview
 
 The API layer mirrors the `MakeAxiosRequest` pattern from
 `maxine-customer-app-react/src/utils/handler.js` — a single function used by
-every service, with SHA-256 request signing, an `apiInfo` request envelope,
-and auto-logout on `status==-1` / `status==-3` / HTTP `403`.
+every service, with an `apiInfo` request envelope and auto-logout on
+`status==-1` / `status==-3` / HTTP `403`.
 
 ### Environment variables (Vite)
-| Var | Purpose |
-| --- | --- |
-| `VITE_API_URL`    | Where axios actually sends requests. In dev: `/api` (routed through the Vite proxy). In prod: full backend URL. |
-| `VITE_API_TARGET` | Dev-only — full backend URL. Vite proxies `/api/*` to it, and the SHA-256 `appsignature` is computed against it (so the server sees the URL it expects). |
-| `VITE_API_KEY`    | `appid` header value |
-| `VITE_API_SECRET` | Secret used to compute the SHA-256 `appsignature` |
+| Var | Used at | Purpose |
+| --- | --- | --- |
+| `VITE_API_URL`        | dev + build | Base URL axios calls. Dev: usually `/api` (routed through Vite proxy). Prod: full backend URL or relative `api`. |
+| `VITE_API_KEY`        | dev + build | Sent as `apitoken` inside the apiInfo body. |
+| `VITE_DEVICE_SECRET`  | dev + build | Used by `loginService` to compute the MD5 `enckey`. |
+| `VITE_API_TARGET`     | **dev only** | Backend URL the dev-server proxy forwards `/api/*` to. Read by `vite.config.js`; not bundled. Skip in `.env.production`. |
+| `VITE_DEVICE_TOKEN/KEY/TYPE/OS`, `VITE_BUILD_VERSION/NUMBER` | dev + build | Optional overrides of the apiInfo device fields. |
 
-Vars are read in `src/config/env.js`. Don't commit `.env` — copy from
-`.env.example` and fill in real values locally.
+Vite loads `.env` for everything, then layers `.env.production` on top
+during `npm run build`. Treat `.env` as a developer file (gitignored) and
+`.env.production` as the source-controlled prod recipe.
 
-### CORS / dev proxy
-Backends that require custom headers (`appid`, `appsignature`, `accesstoken`)
-often haven't whitelisted them in their `Access-Control-Allow-Headers` response,
-so the browser blocks the cross-origin POST even after the OPTIONS preflight
-passes. To sidestep this in development without server changes, leave
-`VITE_API_URL=/api` and set `VITE_API_TARGET` to the real backend — the proxy
-config in `vite.config.js` forwards `/api/*` from the dev server to the
-backend, so the browser sees same-origin traffic and never sends a preflight.
-
-The signature is still computed against `VITE_API_TARGET + url` (see
-`src/config/env.js` → `signingBaseUrl`), so the backend still recognises it.
-
-In production either:
-- Set `VITE_API_URL` to the public backend URL directly (no proxy used), **and**
-  make sure the server's `Access-Control-Allow-Headers` includes `appid,
-  appsignature, accesstoken`, or
-- Reverse-proxy `/api/*` to the backend from the same origin that serves the
-  built app (e.g. nginx / Apache).
+### CORS notes
+- Request layer sends only `Content-Type: text/plain;charset=UTF-8` (no
+  custom headers). This keeps every request a "simple" CORS request — the
+  browser never issues an OPTIONS preflight, so backends with a broken
+  preflight handler still work. The body is JSON; the backend reads raw
+  POST input and parses it the same way.
+- All app credentials (`apitoken`, `accesstoken`, `enckey`, device fields)
+  live inside the `apiInfo` body envelope — nothing custom on the wire.
 
 ### Files
 ```
