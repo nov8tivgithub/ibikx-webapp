@@ -10,6 +10,9 @@ export default defineConfig(({ mode }) => {
   const proxyTarget = env.VITE_API_TARGET;
 
   return {
+    // Emit relative asset paths so the bundle loads regardless of where it's
+    // served from (root domain, subdirectory like XAMPP htdocs, even file://).
+    base: './',
     plugins: [react()],
     server: {
       port: 5173,
