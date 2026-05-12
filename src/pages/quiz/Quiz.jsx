@@ -29,7 +29,7 @@ export default function Quiz() {
       <div className="space-y-6">
         <div
           className="rounded-2xl text-white p-5 lg:p-6 shadow-soft relative overflow-hidden bg-cover bg-center"
-          style={{ backgroundImage: "url('/assets/img/quiz-banner-bg.png')" }}
+          style={{ backgroundImage: `url(${import.meta.env.BASE_URL}assets/img/quiz-banner-bg.png)` }}
         >
           <div className="relative flex items-center justify-between gap-4">
             <div className="flex-1 max-w-md">
@@ -38,7 +38,7 @@ export default function Quiz() {
               <button className="mt-5 px-5 py-2.5 rounded-xl bg-white text-slate-900 font-semibold text-sm shadow-md">{cta}</button>
               <p className="text-xs text-white/85 mt-2 ml-2">{subCta}</p>
             </div>
-            <img src="/assets/img/quiz-banner-icon.png" alt="" className="hidden sm:block w-24 lg:w-32 h-auto shrink-0 select-none pointer-events-none" />
+            <img src={`${import.meta.env.BASE_URL}assets/img/quiz-banner-icon.png`} alt="" className="hidden sm:block w-24 lg:w-32 h-auto shrink-0 select-none pointer-events-none" />
           </div>
         </div>
 

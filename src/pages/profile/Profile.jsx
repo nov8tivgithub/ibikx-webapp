@@ -84,7 +84,7 @@ export default function Profile() {
           {Array.from({ length: 6 }).map((_, i) => (
             <img
               key={i}
-              src="/assets/img/certificate-placeholder.jpg"
+              src={`${import.meta.env.BASE_URL}assets/img/certificate-placeholder.jpg`}
               alt=""
               className="w-16 h-20 object-contain shrink-0 opacity-70"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}

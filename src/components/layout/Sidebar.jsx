@@ -58,7 +58,7 @@ export default function Sidebar({ active }) {
   return (
     <aside className="icon-sidebar fixed top-0 left-0 bottom-0 z-40 flex flex-col py-4">
       <Link to="/dashboard" className="icon-logo" aria-label="Mobilix IdeasCaards">
-        <img src="/assets/img/logo.png" alt="" className="h-8 w-auto" />
+        <img src={`${import.meta.env.BASE_URL}assets/img/logo.png`} alt="" className="h-8 w-auto" />
       </Link>
       <nav className="flex flex-col gap-1.5 mt-3 px-2">
         {ITEMS.map((item) => (

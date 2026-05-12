@@ -23,7 +23,7 @@ export default function Certificates() {
       <Layout active="profile" title="Certificates" back>
         <div className="rounded-2xl border-2 border-dashed border-slate-200 p-10 text-center">
           <img
-            src="/assets/img/certificate-placeholder.jpg"
+            src={`${import.meta.env.BASE_URL}assets/img/certificate-placeholder.jpg`}
             alt=""
             className="w-28 h-32 mx-auto object-contain opacity-70"
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
@@ -51,7 +51,7 @@ export default function Certificates() {
             >
               <div className="aspect-[4/3] bg-slate-100">
                 <img
-                  src={c.thumbnail || c.image || '/assets/img/certificate-placeholder.jpg'}
+                  src={c.thumbnail || c.image || `${import.meta.env.BASE_URL}assets/img/certificate-placeholder.jpg`}
                   alt={c.title || 'Certificate'}
                   className="w-full h-full object-cover"
                   onError={(e) => { e.currentTarget.style.display = 'none'; }}

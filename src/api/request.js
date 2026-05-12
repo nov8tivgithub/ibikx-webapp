@@ -2,9 +2,15 @@
 //
 // This backend identifies the client and the user entirely through the
 // `apiInfo` envelope in the request body (apitoken + accesstoken), so the
-// request leaves with no custom headers — just the default Content-Type. That
-// keeps the CORS preflight green (Content-Type is already in every server's
-// Access-Control-Allow-Headers list) and matches the Postman contract.
+// request leaves with no custom headers.
+//
+// CORS note: the backend's OPTIONS preflight handler returns 405 on every
+// endpoint, so any browser request that triggers a preflight (e.g. JSON
+// content-type) gets blocked. The backend's actual POST response *does*
+// include Access-Control-Allow-Origin:*, and it parses the raw POST body
+// regardless of content-type. So we send Content-Type: text/plain — that
+// keeps the request "simple" per CORS, no preflight is sent, and the POST
+// goes straight through. The body is still JSON for the backend.
 //
 // The envelope shape mirrors what the backend expects in Postman:
 //   { apiInfo: { apitoken, devicetoken, devicekey, devicetype, os,
@@ -45,24 +51,29 @@ function bailToLogin() {
 export function MakeAxiosRequest(method, url, parameters = {}, signal, skipAutoLogout = false, apiInfoExtra = {}) {
   const accesstoken = getToken() || '';
 
+  const body = JSON.stringify({
+    apiInfo: {
+      apitoken: apiKey,
+      devicetoken: DEVICE_TOKEN,
+      devicekey: DEVICE_KEY,
+      devicetype: DEVICE_TYPE,
+      os: OS,
+      buildversion: BUILD_VERSION,
+      buildnumber: BUILD_NUMBER,
+      accesstoken,
+      ...apiInfoExtra,
+    },
+    parameters,
+  });
+
   return new Promise((resolve) => {
     apiClient({
       method,
       url,
-      data: {
-        apiInfo: {
-          apitoken: apiKey,
-          devicetoken: DEVICE_TOKEN,
-          devicekey: DEVICE_KEY,
-          devicetype: DEVICE_TYPE,
-          os: OS,
-          buildversion: BUILD_VERSION,
-          buildnumber: BUILD_NUMBER,
-          accesstoken,
-          ...apiInfoExtra,
-        },
-        parameters,
-      },
+      // Pre-stringified so axios doesn't auto-set Content-Type: application/json.
+      // text/plain keeps the request "simple" — no CORS preflight is sent.
+      data: body,
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
       signal,
     }).then((res) => {
       // status === -1 → token expired / invalid

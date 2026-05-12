@@ -15,7 +15,7 @@ export default function ForgotPassword() {
           backgroundSize: '64px 64px',
         }} />
         <div className="relative max-w-md">
-          <img src="/assets/img/logo.png" alt="Mobilix IdeasCaards" className="h-28 lg:h-40 mx-auto" />
+          <img src={`${import.meta.env.BASE_URL}assets/img/logo.png`} alt="Mobilix IdeasCaards" className="h-28 lg:h-40 mx-auto" />
           <h2 className="text-3xl lg:text-5xl font-bold leading-tight mt-12">Forgot Password?</h2>
           <p className="mt-3 text-white/85 text-base lg:text-lg">We'll send a reset link to your registered email.</p>
         </div>
