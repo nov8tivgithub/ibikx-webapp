@@ -3,12 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import SettingsRow from '../../components/common/SettingsRow';
 import { useAuth } from '../../context/AuthContext';
-import { notify } from '../../utils/notify';
 
 export default function Profile() {
-  const [copied, setCopied] = useState(false);
-  const navigate            = useNavigate();
-  const { user, logout }    = useAuth();
+  const [copied, setCopied]         = useState(false);
+  const [confirmLogout, setConfirm] = useState(false);
+  const navigate                    = useNavigate();
+  const { user, logout }            = useAuth();
 
   // Pull display data from the merged user payload (login + dashboard userinfo).
   const fullName  = user?.name
@@ -32,9 +32,9 @@ export default function Profile() {
       /* ignore */
     }
   }
-  function onLogout() {
+  function confirmAndLogout() {
+    setConfirm(false);
     logout();
-    notify.success('Signed out');
     navigate('/login', { replace: true });
   }
   return (
@@ -104,7 +104,7 @@ export default function Profile() {
         <SettingsRow title="Share App" subtitle="Share with your dear ones" external to="#" iconPath="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />
         <button
           type="button"
-          onClick={onLogout}
+          onClick={() => setConfirm(true)}
           className="settings-row w-full text-left flex items-center gap-4 px-4 py-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition mb-3"
         >
           <span className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
@@ -115,6 +115,40 @@ export default function Profile() {
           <p className="text-sm font-semibold text-slate-900">Logout</p>
         </button>
       </section>
+
+      {confirmLogout && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4"
+          onClick={() => setConfirm(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logout-confirm-title"
+          >
+            <h4 id="logout-confirm-title" className="text-lg font-bold text-slate-900">Sign out?</h4>
+            <p className="mt-2 text-sm text-slate-600">You'll need to log in again to access your account.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirm(false)}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmAndLogout}
+                className="px-4 py-2 rounded-lg bg-brand-blue text-white text-sm font-semibold hover:opacity-90"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

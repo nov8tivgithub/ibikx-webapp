@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../context/AuthContext';
@@ -23,6 +23,17 @@ export default function Login() {
   // If ProtectedRoute kicked us here, location.state.from is the page the
   // user originally tried to visit; send them back there after login.
   const from = location.state?.from?.pathname || '/dashboard';
+
+  // Surface any success copy passed in via route state (e.g. ForgotPassword
+  // redirects here with state.successMessage after the webview completes).
+  useEffect(() => {
+    const msg = location.state?.successMessage;
+    if (msg) {
+      notify.success(msg);
+      // Clear it so a later refresh doesn't re-show the toast.
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
 
   function validate() {
     const next = { email: null, password: null };

@@ -15,6 +15,10 @@ export const apiKey        = env.VITE_API_KEY    || '';
 // services don't need it.
 export const deviceSecret  = env.VITE_DEVICE_SECRET || '';
 
+// Base URL for hosted webviews embedded as iframes (forgot password, etc.).
+// Should end with a trailing slash so pages can append the route name.
+export const webviewUrl    = env.VITE_WEBVIEW_URL || '';
+
 if (import.meta.env.DEV && !baseUrl) {
   // eslint-disable-next-line no-console
   console.warn('[env] VITE_API_URL is not set. API calls will fail until you create a .env file (see .env.example).');
