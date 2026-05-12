@@ -10,10 +10,11 @@ export default defineConfig(({ mode }) => {
   const proxyTarget = env.VITE_API_TARGET;
 
   return {
-    // Deployed under http://localhost/mobilix/. Asset URLs and the router
-    // basename must match this prefix; the .htaccess in /mobilix/ rewrites
-    // unknown paths to index.html so BrowserRouter can take over.
-    base: '/mobilix/',
+    // Deployed at the domain root on AWS Amplify, so assets resolve from /.
+    // Amplify needs an SPA rewrite rule (target /index.html, type 200) for
+    // BrowserRouter refreshes — configure it in the Amplify console under
+    // App settings → Rewrites and redirects.
+    base: '/',
     plugins: [react()],
     server: {
       port: 5173,
