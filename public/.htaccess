@@ -1,0 +1,19 @@
+# SPA fallback for BrowserRouter — any request that doesn't match a real
+# file or directory is rewritten to index.html so React Router can handle
+# the client-side route (e.g. /mobilix/dashboard, /mobilix/login).
+#
+# Requires Apache mod_rewrite. XAMPP has it enabled by default.
+# This file lives at the root of the deployed subfolder (e.g. htdocs/mobilix/).
+# Update RewriteBase + the RewriteRule target if you change the deploy path.
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /mobilix/
+
+  # Don't rewrite real files or directories.
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{REQUEST_FILENAME} !-d
+
+  # Everything else → index.html so React Router takes over client-side.
+  RewriteRule ^ index.html [L]
+</IfModule>

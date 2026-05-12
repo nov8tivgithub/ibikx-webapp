@@ -10,9 +10,10 @@ export default defineConfig(({ mode }) => {
   const proxyTarget = env.VITE_API_TARGET;
 
   return {
-    // Emit relative asset paths so the bundle loads regardless of where it's
-    // served from (root domain, subdirectory like XAMPP htdocs, even file://).
-    base: './',
+    // Deployed under http://localhost/mobilix/. Asset URLs and the router
+    // basename must match this prefix; the .htaccess in /mobilix/ rewrites
+    // unknown paths to index.html so BrowserRouter can take over.
+    base: '/mobilix/',
     plugins: [react()],
     server: {
       port: 5173,
