@@ -75,17 +75,18 @@ function FeaturedSlide({ card, type }) {
           type="button"
           onClick={toggleMute}
           aria-label={muted ? 'Unmute' : 'Mute'}
-          className="absolute bottom-3 right-3 w-11 h-11 rounded-full bg-black/55 hover:bg-black/70 backdrop-blur-md flex items-center justify-center text-white transition active:scale-95"
+          className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-white hover:bg-white shadow-md flex items-center justify-center text-slate-900 transition active:scale-95"
         >
           {muted ? (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M17.25 9.75 22 14.5M22 9.75 17.25 14.5" />
-              <path d="M11.47 4.84 6.75 9.56H4.51c-.88 0-1.7.51-1.94 1.35A9 9 0 0 0 2.25 13c0 .83.11 1.63.32 2.4.24.84 1.06 1.35 1.94 1.35h2.24l4.72 4.72a.75.75 0 0 0 1.28-.53V5.37a.75.75 0 0 0-1.28-.53Z" />
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M11.553 3.064A.75.75 0 0 1 12 3.75v16.5a.75.75 0 0 1-1.255.555L5.46 16H2.75A1.75 1.75 0 0 1 1 14.25v-4.5C1 8.784 1.784 8 2.75 8h2.71l5.295-4.805a.75.75 0 0 1 .798-.131Z" />
+              <path d="M17.78 9.22a.75.75 0 1 0-1.06 1.06L18.44 12l-1.72 1.72a.75.75 0 1 0 1.06 1.06L19.5 13.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L20.56 12l1.72-1.72a.75.75 0 0 0-1.06-1.06L19.5 10.94l-1.72-1.72Z" />
             </svg>
           ) : (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M19.11 5.64a9 9 0 0 1 0 12.72M16.46 8.29a5.25 5.25 0 0 1 0 7.42" />
-              <path d="M11.47 4.84 6.75 9.56H4.51c-.88 0-1.7.51-1.94 1.35A9 9 0 0 0 2.25 13c0 .83.11 1.63.32 2.4.24.84 1.06 1.35 1.94 1.35h2.24l4.72 4.72a.75.75 0 0 0 1.28-.53V5.37a.75.75 0 0 0-1.28-.53Z" />
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M11.553 3.064A.75.75 0 0 1 12 3.75v16.5a.75.75 0 0 1-1.255.555L5.46 16H2.75A1.75 1.75 0 0 1 1 14.25v-4.5C1 8.784 1.784 8 2.75 8h2.71l5.295-4.805a.75.75 0 0 1 .798-.131Z" />
+              <path d="M16.024 7.976a.75.75 0 0 1 1.06 0 5.75 5.75 0 0 1 0 8.132.75.75 0 1 1-1.06-1.06 4.25 4.25 0 0 0 0-6.012.75.75 0 0 1 0-1.06Z" />
+              <path d="M18.857 5.144a.75.75 0 0 1 1.06 0 9.75 9.75 0 0 1 0 13.788.75.75 0 1 1-1.06-1.06 8.25 8.25 0 0 0 0-11.668.75.75 0 0 1 0-1.06Z" />
             </svg>
           )}
         </button>
