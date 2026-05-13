@@ -177,7 +177,11 @@ export default function Dashboard() {
     : FALLBACK_TABS;
 
   const userinfo   = data?.userinfo;
-  const cards      = Array.isArray(data?.cards) ? data.cards : [];
+  // The API returns the featured list under `videos` for the videos tab and
+  // `cards` for the cards tab — fall back across both so either shape works.
+  const cards      = Array.isArray(data?.videos) && data.videos.length
+                       ? data.videos
+                       : Array.isArray(data?.cards) ? data.cards : [];
   const menuList   = Array.isArray(data?.menuList) ? data.menuList : [];
   const categories = Array.isArray(data?.categories) ? data.categories : [];
 
