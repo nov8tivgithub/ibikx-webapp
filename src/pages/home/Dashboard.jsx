@@ -25,7 +25,7 @@ const PLAY_SVG = (
 
 // One slide rendered inside the cover carousel — driven by an API card object.
 function FeaturedSlide({ card, type }) {
-  const image       = card.image_path || card.image || card.preview_image || card.thumbnail;
+  const image       = card.card_path || card.imageLink || card.image_path || card.image || card.preview_image || card.thumbnail;
   const title       = card.title || card.name || '';
   const premium     = card.is_premium === '1' || card.is_premium === 1 || !!card.is_premium;
   const badge       = premium ? '★ Premium' : 'FREE';
@@ -177,11 +177,7 @@ export default function Dashboard() {
     : FALLBACK_TABS;
 
   const userinfo   = data?.userinfo;
-  // The API returns the featured list under `videos` for the videos tab and
-  // `cards` for the cards tab — fall back across both so either shape works.
-  const cards      = Array.isArray(data?.videos) && data.videos.length
-                       ? data.videos
-                       : Array.isArray(data?.cards) ? data.cards : [];
+  const cards      = Array.isArray(data?.cards) ? data.cards : [];
   const menuList   = Array.isArray(data?.menuList) ? data.menuList : [];
   const categories = Array.isArray(data?.categories) ? data.categories : [];
 
