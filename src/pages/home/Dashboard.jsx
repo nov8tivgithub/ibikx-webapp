@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import CoverCarousel from '../../components/common/CoverCarousel';
@@ -15,41 +15,47 @@ const FALLBACK_TABS = [
   { title: 'Cards',  type: 'cards' },
 ];
 
-const PLAY_SVG = (
-  <span className="absolute inset-0 flex items-center justify-center">
-    <span className="w-14 h-14 rounded-full bg-white/30 backdrop-blur flex items-center justify-center text-white">
-      <svg className="w-7 h-7" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5z" /></svg>
-    </span>
-  </span>
-);
-
 // One slide rendered inside the cover carousel — driven by an API card object.
-// For video cards the slide renders an autoplaying muted <video> using
-// `video_path` (with `card_path` as the poster). Image-only cards fall back
-// to the existing <img>.
+// For video cards the slide renders an autoplaying looping <video> using
+// `video_path` (with `card_path` as the poster) plus a mute/unmute toggle.
+// Image-only cards fall back to the existing <img>.
 function FeaturedSlide({ card, type }) {
   const image       = card.card_path || card.imageLink || card.image_path || card.image || card.preview_image || card.thumbnail;
   const video       = card.video_path || card.video || card.videoLink;
   const isVideo     = !!video && (type === 'videos' || card.is_video === '1' || card.is_video === 1 || card.type === 'video');
-  const title       = card.title || card.name || '';
   const premium     = card.is_premium === '1' || card.is_premium === 1 || !!card.is_premium;
-  const badge       = premium ? '★ Premium' : 'FREE';
-  const badgeCls    = premium ? 'badge-crown' : 'badge-free';
+  const badge       = premium ? '★ Premium' : '';
+  const badgeCls    = premium ? 'badge-crown' : '';
   const templatekey = card.templatekey || card.key || card.cardkey || card.videokey || card.id;
   const categorykey = card.categorykey || '';
   const path        = type === 'videos' ? '/video-details' : '/card-details';
   const to          = `${path}?templatekey=${encodeURIComponent(templatekey || '')}&categorykey=${encodeURIComponent(categorykey)}&type=${encodeURIComponent(type)}`;
 
+  // Browsers only allow autoplay while muted — start muted, let the user unmute.
+  const [muted, setMuted] = useState(true);
+  const videoRef = useRef(null);
+
+  function toggleMute(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    setMuted((m) => {
+      const next = !m;
+      if (videoRef.current) videoRef.current.muted = next;
+      return next;
+    });
+  }
+
   return (
     <Link to={to} className="block w-full h-full relative bg-slate-200">
       {isVideo ? (
         <video
+          ref={videoRef}
           src={video}
           poster={image || undefined}
           className="w-full h-full object-cover"
           autoPlay
           loop
-          muted
+          muted={muted}
           playsInline
           preload="metadata"
         />
@@ -61,9 +67,27 @@ function FeaturedSlide({ card, type }) {
           onError={(e) => { e.currentTarget.style.display = 'none'; }}
         />
       ) : null}
-      <span className={`absolute top-3 left-3 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${badgeCls}`}>{badge}</span>
-      {type === 'videos' && !isVideo ? PLAY_SVG : null}
-      <span className="absolute bottom-3 left-3 right-3 text-white font-semibold drop-shadow text-sm">{title}</span>
+      {premium ? (
+        <span className={`absolute top-3 left-3 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${badgeCls}`}>{badge}</span>
+      ) : null}
+      {isVideo ? (
+        <button
+          type="button"
+          onClick={toggleMute}
+          aria-label={muted ? 'Unmute' : 'Mute'}
+          className="absolute bottom-3 right-3 w-9 h-9 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur flex items-center justify-center text-white transition"
+        >
+          {muted ? (
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.59 3l2.7-2.7-1.41-1.41L15.17 10.59 12.46 7.88l-1.41 1.41 2.7 2.71-2.7 2.7 1.41 1.41 2.71-2.7 2.71 2.7 1.41-1.41-2.7-2.7z" />
+            </svg>
+          ) : (
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3a4.5 4.5 0 00-2.5-4.03v8.05A4.5 4.5 0 0016.5 12zM14 3.23v2.06A7 7 0 0119 12a7 7 0 01-5 6.71v2.06A9 9 0 0021 12 9 9 0 0014 3.23z" />
+            </svg>
+          )}
+        </button>
+      ) : null}
     </Link>
   );
 }
