@@ -1,25 +1,59 @@
-import { useEffect, useRef, useState } from 'react';
+import { cloneElement, isValidElement, useEffect, useMemo, useRef, useState } from 'react';
 
 // Coverflow-style carousel. `slides` is an array of React nodes; each one
 // is wrapped in a .cover-slide. Active slide is centered and scaled up,
 // neighbours fan out via the .pos-* classes (defined in index.css).
 export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
-  const n = slides.length;
   const [active, setActive] = useState(0);
-  const [range, setRange] = useState(2);
+  // Initial range is computed eagerly from the viewport so the first render
+  // already matches the final layout. Without this, the carousel would mount
+  // with range=2 and then jump to 3/4 in the next effect tick, producing a
+  // visible self-scroll as every side slide animates into its new position.
+  const [range, setRange] = useState(() => {
+    if (typeof window === 'undefined') return 2;
+    const w = window.innerWidth;
+    if (w >= 1280) return 4;
+    if (w >= 1024) return 3;
+    return 2;
+  });
+  // If there are fewer real cards than visible slots for the current range,
+  // pad the array by repeating cards (e.g. 7 cards on a 9-slot layout → cards
+  // [0..6, 0, 1] so the side positions stay filled instead of leaving gaps).
+  const paddedSlides = useMemo(() => {
+    if (!slides.length) return slides;
+    const min = range * 2 + 1;
+    if (slides.length >= min) return slides;
+    const out = [];
+    for (let i = 0; i < min; i++) out.push(slides[i % slides.length]);
+    return out;
+  }, [slides, range]);
+  const n = paddedSlides.length;
+  // Indices whose offset wraps across the circular boundary on the current
+  // transition (e.g. a slide jumping from far-left to far-right when there
+  // are only 3 slides). Those get transition: none for one frame so they
+  // snap to the new side instead of sliding across the carousel.
+  const [skipTx, setSkipTx] = useState(() => new Set());
   const rootRef = useRef(null);
   const draggingRef = useRef(false);
-  const dragStartXRef = useRef(0);
+  // null means "no drag in progress" — the pointer handlers below early-return
+  // when this is null so plain mouse-hover events don't get mistaken for drags.
+  const dragStartXRef = useRef(null);
   const dragDxRef = useRef(0);
 
-  // Visible neighbours per side based on viewport width.
+  // Visible neighbours per side based on viewport width. We don't cap by the
+  // raw slide count any more — paddedSlides duplicates cards to fill the slots
+  // when there are too few. Below 3 unique cards we keep range small so the
+  // user doesn't see the same card 3+ times on screen.
   useEffect(() => {
     function computeRange() {
       const w = window.innerWidth;
       let target = 2;
-      if (w >= 1536) target = 4;
-      else if (w >= 1280) target = 3;
-      setRange(Math.min(target, Math.floor((n - 1) / 2)));
+      if (w >= 1280) target = 4;        // 9 slots (active + 4 each side) on most laptops/desktops
+      else if (w >= 1024) target = 3;   // 7 slots on tablets / smaller laptops
+      const cap = slides.length >= 3
+        ? target
+        : Math.floor(Math.max(0, slides.length - 1) / 2);
+      setRange(Math.max(0, Math.min(target, cap)));
     }
     computeRange();
     let timer;
@@ -32,31 +66,58 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
       window.removeEventListener('resize', onResize);
       clearTimeout(timer);
     };
-  }, [n]);
+  }, [slides.length]);
 
-  function circOffset(i) {
-    let off = i - active;
+  function offsetFrom(i, base) {
+    let off = i - base;
     if (off > n / 2) off -= n;
     if (off < -n / 2) off += n;
     return off;
   }
+  function circOffset(i) { return offsetFrom(i, active); }
 
   function classFor(i) {
     const offset = circOffset(i);
-    if (offset === 0) return 'pos-active';
-    if (offset === -1) return 'pos-prev';
-    if (offset === 1) return 'pos-next';
-    if (offset === -2 && range >= 2) return 'pos-edge-l';
-    if (offset === 2 && range >= 2) return 'pos-edge-r';
-    if (offset === -3 && range >= 3) return 'pos-edge2-l';
-    if (offset === 3 && range >= 3) return 'pos-edge2-r';
-    if (offset === -4 && range >= 4) return 'pos-edge3-l';
-    if (offset === 4 && range >= 4) return 'pos-edge3-r';
-    return 'pos-hidden';
+    let cls;
+    if (offset === 0) cls = 'pos-active';
+    else if (offset === -1) cls = 'pos-prev';
+    else if (offset === 1) cls = 'pos-next';
+    else if (offset === -2 && range >= 2) cls = 'pos-edge-l';
+    else if (offset === 2 && range >= 2) cls = 'pos-edge-r';
+    else if (offset === -3 && range >= 3) cls = 'pos-edge2-l';
+    else if (offset === 3 && range >= 3) cls = 'pos-edge2-r';
+    else if (offset === -4 && range >= 4) cls = 'pos-edge3-l';
+    else if (offset === 4 && range >= 4) cls = 'pos-edge3-r';
+    else cls = 'pos-hidden';
+    return skipTx.has(i) ? `${cls} cover-skip-tx` : cls;
   }
 
-  function next() { setActive((a) => (a + 1) % n); }
-  function prev() { setActive((a) => (a - 1 + n) % n); }
+  function setActiveSafely(newActive) {
+    if (newActive === active) return;
+    // Mark slides whose offset change is too large to animate cleanly — those
+    // would otherwise fly across the carousel during a circular wrap.
+    const wraps = new Set();
+    for (let i = 0; i < n; i++) {
+      const oldOff = offsetFrom(i, active);
+      const newOff = offsetFrom(i, newActive);
+      if (Math.abs(newOff - oldOff) > 1.5) wraps.add(i);
+    }
+    setSkipTx(wraps);
+    setActive(newActive);
+  }
+
+  // After applying skipTx (no-transition snap), clear it next frame so the
+  // affected slides resume normal transitions for the following move.
+  useEffect(() => {
+    if (skipTx.size === 0) return;
+    const id = requestAnimationFrame(() =>
+      requestAnimationFrame(() => setSkipTx(new Set()))
+    );
+    return () => cancelAnimationFrame(id);
+  }, [skipTx]);
+
+  function next() { setActiveSafely((active + 1) % n); }
+  function prev() { setActiveSafely((active - 1 + n) % n); }
 
   // Drag handlers
   function onPointerDown(e) {
@@ -92,7 +153,7 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
   }
   function onSlideClick(e, i) {
     if (draggingRef.current) return;
-    if (i !== active) { e.preventDefault(); setActive(i); }
+    if (i !== active) { e.preventDefault(); setActiveSafely(i); }
   }
 
   return (
@@ -107,13 +168,13 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
       onPointerLeave={onPointerUp}
       onClickCapture={onClickCapture}
     >
-      {slides.map((slide, i) => (
+      {paddedSlides.map((slide, i) => (
         <div
           key={i}
           className={`cover-slide ${classFor(i)}`}
           onClick={(e) => onSlideClick(e, i)}
         >
-          {slide}
+          {isValidElement(slide) ? cloneElement(slide, { isActive: i === active }) : slide}
         </div>
       ))}
       <button className="cover-prev" aria-label="Previous" onClick={(e) => { e.preventDefault(); prev(); }}>

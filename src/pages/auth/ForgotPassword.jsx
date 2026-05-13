@@ -43,12 +43,13 @@ export default function ForgotPassword() {
 
   function handleIframeLoad() {
     setLoaded(true);
-    // Same-origin best-effort check. Throws cross-origin → that's fine, the
-    // postMessage path above is the real contract.
+    const win = iframeRef.current?.contentWindow;
+    console.log('[ForgotPassword] iframe load — contentWindow:', win);
+    // Probe each cross-origin-restricted accessor separately so we can see
+    // exactly which one the browser blocks.
     try {
-      const win = iframeRef.current?.contentWindow;
-      const href = win?.location?.href;
-      if (!href) return;
+      const href = win.location.href;
+      console.log('[ForgotPassword] read location.href OK:', href);
       const url = new URL(href);
       if (url.searchParams.get('success') === '1') {
         navigate('/login', {
@@ -56,8 +57,18 @@ export default function ForgotPassword() {
           state: { successMessage: url.searchParams.get('message') || DEFAULT_SUCCESS },
         });
       }
-    } catch {
-      /* cross-origin — rely on postMessage */
+    } catch (err) {
+      console.warn('[ForgotPassword] location.href read failed:', err);
+    }
+    try {
+      console.log('[ForgotPassword] location.pathname:', win.location.pathname);
+    } catch (err) {
+      console.warn('[ForgotPassword] location.pathname read failed:', err);
+    }
+    try {
+      console.log('[ForgotPassword] contentDocument:', win.document);
+    } catch (err) {
+      console.warn('[ForgotPassword] contentDocument read failed:', err);
     }
   }
 
