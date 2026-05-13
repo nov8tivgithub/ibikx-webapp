@@ -24,8 +24,13 @@ const PLAY_SVG = (
 );
 
 // One slide rendered inside the cover carousel — driven by an API card object.
+// For video cards the slide renders an autoplaying muted <video> using
+// `video_path` (with `card_path` as the poster). Image-only cards fall back
+// to the existing <img>.
 function FeaturedSlide({ card, type }) {
   const image       = card.card_path || card.imageLink || card.image_path || card.image || card.preview_image || card.thumbnail;
+  const video       = card.video_path || card.video || card.videoLink;
+  const isVideo     = !!video && (type === 'videos' || card.is_video === '1' || card.is_video === 1 || card.type === 'video');
   const title       = card.title || card.name || '';
   const premium     = card.is_premium === '1' || card.is_premium === 1 || !!card.is_premium;
   const badge       = premium ? '★ Premium' : 'FREE';
@@ -37,7 +42,18 @@ function FeaturedSlide({ card, type }) {
 
   return (
     <Link to={to} className="block w-full h-full relative bg-slate-200">
-      {image ? (
+      {isVideo ? (
+        <video
+          src={video}
+          poster={image || undefined}
+          className="w-full h-full object-cover"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="metadata"
+        />
+      ) : image ? (
         <img
           src={image}
           alt=""
@@ -46,7 +62,7 @@ function FeaturedSlide({ card, type }) {
         />
       ) : null}
       <span className={`absolute top-3 left-3 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${badgeCls}`}>{badge}</span>
-      {type === 'videos' ? PLAY_SVG : null}
+      {type === 'videos' && !isVideo ? PLAY_SVG : null}
       <span className="absolute bottom-3 left-3 right-3 text-white font-semibold drop-shadow text-sm">{title}</span>
     </Link>
   );
