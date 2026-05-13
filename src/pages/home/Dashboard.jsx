@@ -240,25 +240,6 @@ export default function Dashboard() {
           {/* Menu list (top-level field — same for both tabs but reloads with the response). */}
           <MenuList items={menuList} />
 
-          {/* Videos tab only — My / Free Videos shortcut row. */}
-          {type === 'videos' ? (
-            <>
-              <h3 className="text-lg font-bold text-slate-900 mb-3">Videos</h3>
-              <ScrollRow className="mb-8">
-                <Link to="/my-videos" className="thumb relative block aspect-[3/4] rounded-2xl overflow-hidden bg-slate-200 shadow-soft">
-                  <img src="https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=600" alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
-                  <span className="absolute bottom-3 left-3 text-white font-semibold">My Videos</span>
-                </Link>
-                <Link to="/free-videos" className="thumb relative block aspect-[3/4] rounded-2xl overflow-hidden bg-slate-200 shadow-soft">
-                  <img src="https://images.unsplash.com/photo-1611162616475-46b635cb6868?w=600" alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/55 to-transparent" />
-                  <span className="absolute bottom-3 left-3 text-white font-semibold">Free Videos</span>
-                </Link>
-              </ScrollRow>
-            </>
-          ) : null}
-
           {/* Category rows. */}
           <div className="space-y-8">
             {categories.map((c) => (
