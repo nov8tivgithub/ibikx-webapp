@@ -7,11 +7,13 @@ import { MakeAxiosRequest } from '../api/request';
 // /cardlisting — list cards inside a sub-category (or favourites).
 // favourite="1" filters to the user's saved items; "0" returns the regular list.
 // type is "videos" | "cards" (the active dashboard tab).
+// last_id: pass the previous response's last_id to fetch the next page; "" or 0
+// for the first page. Server signals "more pages available" via has_load_more.
 export const getCardListingService = (
-  { categorykey = '', favourite = '0', type = 'videos' } = {},
+  { categorykey = '', favourite = '0', type = 'videos', last_id = '' } = {},
   signal,
 ) =>
-  MakeAxiosRequest('post', '/cardlisting', { categorykey, favourite, type }, signal);
+  MakeAxiosRequest('post', '/cardlisting', { categorykey, favourite, type, last_id }, signal);
 
 // Back-compat shim — older code paths import getCardListService. Routes
 // through the same /cardlisting endpoint with the new payload shape.

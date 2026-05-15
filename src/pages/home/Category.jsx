@@ -4,6 +4,7 @@ import Layout from '../../components/layout/Layout';
 import CategoryTile from '../../components/catalog/CategoryTile';
 import { useApi } from '../../hooks/useApi';
 import { getCategoryDetailsService } from '../../services/catalog.service';
+import { subLink } from '../../data/categories';
 import { notify } from '../../utils/notify';
 
 export default function Category() {
@@ -32,7 +33,7 @@ export default function Category() {
               key={it.categoryid || it.id || it.categorykey || it.title}
               title={it.categoryname || it.title}
               image={it.imageLink || it.image}
-              to={`/category/${encodeURIComponent(cat)}/subcategory/${encodeURIComponent(subKey)}`}
+              to={subLink(cat, subKey)}
             />
           );
         })}

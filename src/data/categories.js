@@ -86,6 +86,23 @@ export const CATEGORY_ORDER = [
 export function categoryLink(catKey) {
   return `/category/${encodeURIComponent(catKey)}`;
 }
+
+// Some parent categories have sub-items that live on their own dedicated
+// pages (e.g. the `free_templates` category points at /free-videos and
+// /my-videos rather than the generic /category/.../subcategory/... route).
+// Anything not listed here falls back to the generic nested URL.
+// Real subcategorykey values from /dashboardnew under the free_templates parent:
+//   { categorykey: "my_videos",       categoryname: "My Videos"   } → /my-videos
+//   { categorykey: "free_templates",  categoryname: "Free Videos" } → /free-videos
+const SUB_ROUTE_OVERRIDES = {
+  free_templates: {
+    my_videos:      '/my-videos',
+    free_templates: '/free-videos',
+  },
+};
+
 export function subLink(catKey, sub) {
+  const override = SUB_ROUTE_OVERRIDES[catKey]?.[sub];
+  if (override) return override;
   return `/category/${encodeURIComponent(catKey)}/subcategory/${encodeURIComponent(sub)}`;
 }

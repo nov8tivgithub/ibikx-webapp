@@ -7,6 +7,7 @@ import CategoryTile from '../../components/catalog/CategoryTile';
 import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../context/AuthContext';
 import { getDashboardService } from '../../services/catalog.service';
+import { subLink } from '../../data/categories';
 import { notify } from '../../utils/notify';
 
 // Fallback tabs used until the API responds (or if the field is missing).
@@ -207,7 +208,7 @@ function ApiCategorySection({ category }) {
             key={sub.categoryid}
             title={sub.categoryname}
             image={sub.imageLink}
-            to={`/category/${encodeURIComponent(category.categorykey)}/subcategory/${encodeURIComponent(sub.categorykey)}`}
+            to={subLink(category.categorykey, sub.categorykey)}
           />
         ))}
       </ScrollRow>

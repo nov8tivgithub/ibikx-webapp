@@ -1,56 +1,130 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import VideoThumbnail from '../../components/catalog/VideoThumbnail';
 import CardThumbnail from '../../components/catalog/CardThumbnail';
-import { useApi } from '../../hooks/useApi';
 import { getCardListingService } from '../../services/card.service';
 import { notify } from '../../utils/notify';
 
+// `data.has_load_more === "1"` plus `data.last_id` drive paginated load-more.
+// We accumulate items across pages in local state and call /cardlisting again
+// with `last_id` whenever the sentinel below the grid scrolls into view.
 export default function Subcategory() {
-  // `catKey` is the parent category key, `subKey` is the leaf sub-category key —
-  // the listing endpoint takes the leaf key as `categorykey`.
   const { catKey: rawCat, subKey: rawSub } = useParams();
-  const cat                            = decodeURIComponent(rawCat || '');
-  const sub                            = decodeURIComponent(rawSub || '');
-  const subName                        = 'Subcategory';
-  const [tab, setTab]                  = useState('videos');
-  const { data, loading, error, run }  = useApi(getCardListingService);
-
-  // Use the leaf categorykey when present, else fall back to the parent.
+  const cat = decodeURIComponent(rawCat || '');
+  const sub = decodeURIComponent(rawSub || '');
   const leafKey = sub || cat;
 
+  const [tab, setTab]                 = useState('videos');
+  const [data, setData]               = useState(null);   // latest response envelope
+  const [items, setItems]             = useState([]);     // accumulated cards
+  const [lastId, setLastId]           = useState('');
+  const [hasMore, setHasMore]         = useState(false);
+  const [loading, setLoading]         = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const abortRef    = useRef(null);
+  const sentinelRef = useRef(null);
+  // Latest filters so a stale in-flight request can't pollute fresh state.
+  const reqIdRef    = useRef(0);
+
+  // Reset + load the first page whenever tab or leafKey changes.
   useEffect(() => {
-    if (leafKey) run({ categorykey: leafKey, favourite: '0', type: tab });
-  }, [tab, leafKey, run]);
-  useEffect(() => { if (error) notify.error(error); }, [error]);
+    if (!leafKey) return;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const reqId = ++reqIdRef.current;
 
-  const items = Array.isArray(data?.items)    ? data.items
-              : Array.isArray(data?.cards)    ? data.cards
-              : Array.isArray(data?.listing)  ? data.listing
-              : Array.isArray(data)           ? data
-              : [];
+    setLoading(true);
+    setItems([]);
+    setLastId('');
+    setHasMore(false);
+    setData(null);
 
-  const title = data?.subcategoryname
-    ? `${data.categoryname || ''} > ${data.subcategoryname}`
-    : subName;
+    getCardListingService(
+      { categorykey: leafKey, favourite: '0', type: tab, last_id: '' },
+      controller.signal,
+    ).then((res) => {
+      if (reqId !== reqIdRef.current) return; // a newer request superseded us
+      if (res?.status === 1 || res?.status === '1') {
+        const d = res.data || {};
+        setData(d);
+        setItems(Array.isArray(d.cards) ? d.cards : []);
+        setLastId(d.last_id ?? '');
+        setHasMore(d.has_load_more === '1' || d.has_load_more === 1);
+      } else if (res?.name !== 'CanceledError') {
+        notify.error(res?.message || 'Failed to load');
+      }
+      setLoading(false);
+    });
+
+    return () => controller.abort();
+  }, [tab, leafKey]);
+
+  // Next-page fetch, appending into items.
+  const loadMore = useCallback(() => {
+    if (loadingMore || loading || !hasMore || !leafKey) return;
+    const reqId = reqIdRef.current; // capture; if it changes, throw out the result
+    setLoadingMore(true);
+    getCardListingService(
+      { categorykey: leafKey, favourite: '0', type: tab, last_id: lastId },
+    ).then((res) => {
+      if (reqId !== reqIdRef.current) return;
+      if (res?.status === 1 || res?.status === '1') {
+        const d = res.data || {};
+        setItems((prev) => prev.concat(Array.isArray(d.cards) ? d.cards : []));
+        setLastId(d.last_id ?? lastId);
+        setHasMore(d.has_load_more === '1' || d.has_load_more === 1);
+      } else if (res?.name !== 'CanceledError') {
+        notify.error(res?.message || 'Failed to load more');
+      }
+      setLoadingMore(false);
+    });
+  }, [hasMore, lastId, leafKey, loading, loadingMore, tab]);
+
+  // Watch the sentinel — when it enters the viewport, request the next page.
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el || !hasMore) return;
+    const obs = new IntersectionObserver(
+      (entries) => { if (entries[0].isIntersecting) loadMore(); },
+      { rootMargin: '200px 0px' }, // start loading a bit before the sentinel enters
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [hasMore, loadMore]);
+
+  // /cardlisting returns the page title in `data.category`.
+  const title = data?.category
+    || (data?.subcategoryname ? `${data.categoryname || ''} > ${data.subcategoryname}` : 'Subcategory');
+
+  // Tab strip is gated solely on `isShowtypeTab`. When the backend says to
+  // show tabs but doesn't supply any, fall back to the default Videos / Cards.
+  const showTabs = data?.isShowtypeTab === '1' || data?.isShowtypeTab === 1;
+  const apiTabs  = Array.isArray(data?.dashboard_tabs) ? data.dashboard_tabs : [];
+  const tabs     = apiTabs.length ? apiTabs : [
+    { title: 'Videos', type: 'videos' },
+    { title: 'Cards',  type: 'cards'  },
+  ];
 
   return (
-    <Layout active="home" title={title} back loading={!data && !error}>
-      <div className="border-b border-slate-200 flex gap-6 mb-6">
-        <button
-          type="button"
-          onClick={() => setTab('videos')}
-          className={`-mb-px py-3 px-1 text-sm font-semibold text-slate-500 border-b-2 border-transparent${tab === 'videos' ? ' is-active' : ''}`}
-          data-tab="videos"
-        >Videos</button>
-        <button
-          type="button"
-          onClick={() => setTab('cards')}
-          className={`-mb-px py-3 px-1 text-sm font-semibold text-slate-500 border-b-2 border-transparent${tab === 'cards' ? ' is-active' : ''}`}
-          data-tab="cards"
-        >Cards</button>
-      </div>
+    <Layout active="home" title={title} back loading={loading && !data}>
+      {showTabs ? (
+        <div className="border-b border-slate-200 flex gap-6 mb-6">
+          {tabs.map((t) => (
+            <button
+              key={t.type}
+              type="button"
+              onClick={() => { if (tab !== t.type) setTab(t.type); }}
+              className={`-mb-px py-3 px-1 text-sm font-semibold text-slate-500 border-b-2 border-transparent${tab === t.type ? ' is-active' : ''}`}
+              data-tab={t.type}
+            >
+              {t.title}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {!loading && !items.length ? (
         <p className="text-sm text-slate-400">No {tab} available in this category yet.</p>
@@ -58,24 +132,31 @@ export default function Subcategory() {
 
       <div className="tile-grid">
         {items.map((it) => {
-          const isVideo     = tab === 'videos';
+          const isVideo     = tab === 'videos' || it.is_video === '1' || it.is_video === 1 || it.type === 'video';
           const Comp        = isVideo ? VideoThumbnail : CardThumbnail;
           const templatekey = it.templatekey || it.cardkey || it.id;
           const detailHref  = `${isVideo ? '/video-details' : '/card-details'}?templatekey=${encodeURIComponent(templatekey || '')}&categorykey=${encodeURIComponent(leafKey)}&type=${encodeURIComponent(tab)}`;
+          const isFav       = it.favourite === '1' || it.favourite === 1 || !!it.is_favourite;
           return (
             <Comp
-              key={it.id || templatekey || it.title}
-              title={it.title || it.name}
-              image={it.image || it.image_path || it.imageLink || it.thumbnail}
-              badge={it.is_premium ? '★' : 'FREE'}
-              badgeClass={it.is_premium ? 'badge-crown' : 'badge-free'}
+              key={it.id || it.cardid || templatekey || it.title}
+              title={it.title || it.name || ''}
+              image={it.imageLink || it.image || it.image_path || it.thumbnail}
+              badge={it.is_free === 1 || it.is_free === '1' ? 'FREE' : '★'}
+              badgeClass={it.is_free === 1 || it.is_free === '1' ? 'badge-free' : 'badge-crown'}
               {...(isVideo ? { videoKey: templatekey } : { cardKey: templatekey })}
-              isFavourite={!!it.is_favourite}
+              isFavourite={isFav}
               to={detailHref}
             />
           );
         })}
       </div>
+
+      {hasMore ? (
+        <div ref={sentinelRef} className="flex items-center justify-center py-6">
+          {loadingMore ? <div className="loader-spinner" aria-hidden="true" /> : null}
+        </div>
+      ) : null}
     </Layout>
   );
 }

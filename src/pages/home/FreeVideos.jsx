@@ -5,11 +5,12 @@ import { useApiOnMount } from '../../hooks/useApiOnMount';
 import { getCardListingService } from '../../services/card.service';
 import { notify } from '../../utils/notify';
 
-// No dedicated /freevideos endpoint — filtered listing off /cardlisting.
-// Adjust the param shape once backend confirms a "free" flag.
+// Backend treats "free_templates" as the categorykey for the Free Videos
+// listing — same value the API uses for the sub-tile under the Free Templates
+// parent on the dashboard.
 export default function FreeVideos() {
   const { data, loading, error } = useApiOnMount(getCardListingService, [
-    { categorykey: '', favourite: '0', type: 'videos' },
+    { categorykey: 'free_templates', favourite: '0', type: 'videos' },
   ]);
   useEffect(() => { if (error) notify.error(error); }, [error]);
 
