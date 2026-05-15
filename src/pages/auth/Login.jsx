@@ -4,6 +4,7 @@ import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../context/AuthContext';
 import { loginService } from '../../services/auth.service';
 import { notify } from '../../utils/notify';
+import ForgotPasswordModal from '../../components/auth/ForgotPasswordModal';
 
 export default function Login() {
   const [showPw, setShowPw] = useState(false);
@@ -16,6 +17,7 @@ export default function Login() {
   // button is guaranteed to re-enable the instant the response lands, even
   // before any subsequent setState / navigate calls run.
   const [submitting, setSubmitting] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const navigate            = useNavigate();
   const location            = useLocation();
   const { login }           = useAuth();
@@ -170,7 +172,13 @@ export default function Login() {
           </label>
 
           <div className="text-right">
-            <Link to="/forgot-password" className="text-sm font-semibold text-brand-blue hover:underline">Forgot Password?</Link>
+            <button
+              type="button"
+              onClick={() => setForgotOpen(true)}
+              className="text-sm font-semibold text-brand-blue hover:underline"
+            >
+              Forgot Password?
+            </button>
           </div>
           <button
             type="submit"
@@ -185,6 +193,12 @@ export default function Login() {
           </p>
         </form>
       </section>
+
+      <ForgotPasswordModal
+        open={forgotOpen}
+        onClose={() => setForgotOpen(false)}
+        onSuccess={(msg) => notify.success(msg)}
+      />
     </div>
   );
 }

@@ -7,7 +7,6 @@ import PreScreenOverlay from './components/common/PreScreenOverlay';
 // Auth
 import Login from './pages/auth/Login';
 import Signup from './pages/auth/Signup';
-import ForgotPassword from './pages/auth/ForgotPassword';
 
 // Home / catalog
 import Dashboard from './pages/home/Dashboard';
@@ -56,7 +55,6 @@ export default function App() {
       <Route element={<PublicRoute />}>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
       </Route>
 
       {/* Protected — bounce to /login if not signed in */}
