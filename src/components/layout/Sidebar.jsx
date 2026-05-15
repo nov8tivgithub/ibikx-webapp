@@ -20,7 +20,7 @@ const ITEMS = [
     key: 'bytes',
     to: '/bytes',
     label: 'Idea Bytes',
-    icon: 'M9 18h6m-3-3v3M8.5 14a4 4 0 1 1 7 0c-.7 1-1.5 2-1.5 3h-4c0-1-.8-2-1.5-3z',
+    icon: 'M12 3a7 7 0 0 0-4 12.7c.6.5 1 1.2 1 2v.3h6V18c0-.8.4-1.5 1-2A7 7 0 0 0 12 3zM9 20h6M10 22h4',
   },
   {
     key: 'quiz',

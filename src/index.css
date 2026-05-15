@@ -185,11 +185,9 @@ body {
   aspect-ratio: 3 / 4;
   border-radius: 1.25rem;
   background: #ffffff;
-  /* clip-path keeps the rounded shape through 3D transforms — overflow:hidden
-     alone glitches in Chrome (square corners flash for one frame as the GPU
-     promotes the layer during the next-card transition). */
-  -webkit-clip-path: inset(0 round 1.25rem);
-          clip-path: inset(0 round 1.25rem);
+  /* overflow:hidden so the inner image is rounded, but the box-shadow stays
+     visible OUTSIDE the box (clip-path would otherwise clip the shadow too). */
+  overflow: hidden;
   transform-style: preserve-3d;
   backface-visibility: hidden;
   will-change: transform, opacity;

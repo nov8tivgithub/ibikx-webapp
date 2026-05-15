@@ -226,16 +226,16 @@ export default function Dashboard() {
 
   return (
     <Layout active="home" loading={!data && !error}>
-      <section className="mb-3 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h2 className="text-2xl lg:text-3xl font-bold text-slate-900">
+      <section className="mb-3 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 leading-tight truncate">
             {userinfo?.title || (loading ? 'Loading…' : 'Hi 👋')}
           </h2>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="text-sm text-slate-500 mt-0.5 truncate">
             {userinfo?.description || 'Explore our templates'}
           </p>
         </div>
-        <div className="segmented inline-flex bg-slate-100 rounded-full p-1 shadow-soft">
+        <div className="segmented inline-flex bg-slate-100 rounded-full p-1 shadow-soft shrink-0 self-center">
           {tabs.map((t) => (
             <button
               key={t.type}
