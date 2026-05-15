@@ -184,7 +184,7 @@ body {
   width: 15rem;
   aspect-ratio: 3 / 4;
   border-radius: 1.25rem;
-  background: #1e293b;
+  background: #ffffff;
   /* clip-path keeps the rounded shape through 3D transforms — overflow:hidden
      alone glitches in Chrome (square corners flash for one frame as the GPU
      promotes the layer during the next-card transition). */
@@ -198,9 +198,14 @@ body {
     opacity 0.55s ease,
     box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
+  /* Three-layer drop shadow → the card reads as floating above the page.
+       1) Sharp close-contact line directly underneath
+       2) Big diffuse lift shadow with a downward bias
+       3) Wide, far-away ground shadow with a soft brand-blue tint */
   box-shadow:
-    0 2px 4px rgba(15, 23, 42, 0.05),
-    0 12px 28px rgba(15, 23, 42, 0.12);
+    0 6px 12px -2px rgba(15, 23, 42, 0.10),
+    0 28px 44px -12px rgba(15, 23, 42, 0.22),
+    0 60px 90px -28px rgba(30, 155, 255, 0.18);
 }
 /* Image / video container — fills the card, used as the anchor for the
    absolutely-positioned controls overlay. */

@@ -115,7 +115,7 @@ export default function ForgotPasswordModal({ open, onClose, onSuccess }) {
           </button>
         </header>
 
-        <div className="relative bg-white" style={{ height: '70vh' }}>
+        <div className="relative bg-white" style={{ height: 'min(60vh, 32rem)' }}>
           {!loaded && (
             <div className="absolute inset-0 flex items-center justify-center bg-white">
               <div className="loader-spinner" aria-hidden="true" />
