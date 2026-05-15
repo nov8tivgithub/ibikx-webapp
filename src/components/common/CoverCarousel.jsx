@@ -1,5 +1,24 @@
 import { cloneElement, isValidElement, useEffect, useMemo, useRef, useState } from 'react';
 
+// How many neighbours to show on each side of the active slide based on
+// viewport width. Total visible slots = range * 2 + 1.
+//   range 5 → 11 slots (≥1920)
+//   range 4 →  9 slots (≥1280)
+//   range 3 →  7 slots (≥1024)
+//   range 2 →  5 slots (≥768)
+//   range 1 →  3 slots (≥480)
+//   range 0 →  1 slot  (mobile)
+function rangeForViewport() {
+  if (typeof window === 'undefined') return 2;
+  const w = window.innerWidth;
+  if (w >= 1920) return 5;
+  if (w >= 1280) return 4;
+  if (w >= 1024) return 3;
+  if (w >=  768) return 2;
+  if (w >=  480) return 1;
+  return 0;
+}
+
 // Coverflow-style carousel. `slides` is an array of React nodes; each one
 // is wrapped in a .cover-slide. Active slide is centered and scaled up,
 // neighbours fan out via the .pos-* classes (defined in index.css).
@@ -7,15 +26,9 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
   const [active, setActive] = useState(0);
   // Initial range is computed eagerly from the viewport so the first render
   // already matches the final layout. Without this, the carousel would mount
-  // with range=2 and then jump to 3/4 in the next effect tick, producing a
+  // with a default range and then jump in the next effect tick, producing a
   // visible self-scroll as every side slide animates into its new position.
-  const [range, setRange] = useState(() => {
-    if (typeof window === 'undefined') return 2;
-    const w = window.innerWidth;
-    if (w >= 1280) return 4;
-    if (w >= 1024) return 3;
-    return 2;
-  });
+  const [range, setRange] = useState(() => rangeForViewport());
   // If there are fewer real cards than visible slots for the current range,
   // pad the array by repeating cards (e.g. 7 cards on a 9-slot layout → cards
   // [0..6, 0, 1] so the side positions stay filled instead of leaving gaps).
@@ -46,10 +59,7 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
   // user doesn't see the same card 3+ times on screen.
   useEffect(() => {
     function computeRange() {
-      const w = window.innerWidth;
-      let target = 2;
-      if (w >= 1280) target = 4;        // 9 slots (active + 4 each side) on most laptops/desktops
-      else if (w >= 1024) target = 3;   // 7 slots on tablets / smaller laptops
+      const target = rangeForViewport();
       const cap = slides.length >= 3
         ? target
         : Math.floor(Math.max(0, slides.length - 1) / 2);
@@ -88,6 +98,8 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
     else if (offset === 3 && range >= 3) cls = 'pos-edge2-r';
     else if (offset === -4 && range >= 4) cls = 'pos-edge3-l';
     else if (offset === 4 && range >= 4) cls = 'pos-edge3-r';
+    else if (offset === -5 && range >= 5) cls = 'pos-edge4-l';
+    else if (offset === 5 && range >= 5) cls = 'pos-edge4-r';
     else cls = 'pos-hidden';
     return skipTx.has(i) ? `${cls} cover-skip-tx` : cls;
   }
@@ -151,9 +163,17 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
   function onClickCapture(e) {
     if (draggingRef.current) { e.preventDefault(); e.stopPropagation(); }
   }
-  function onSlideClick(e, i) {
+  // Runs in the CAPTURE phase so it fires before any child <Link>/<a> click
+  // handler. For non-active slides we cancel the click outright and just
+  // focus that slide; only the active slide's click is allowed to bubble into
+  // the Link and navigate to its detail page.
+  function onSlideClickCapture(e, i) {
     if (draggingRef.current) return;
-    if (i !== active) { e.preventDefault(); setActiveSafely(i); }
+    if (i !== active) {
+      e.preventDefault();
+      e.stopPropagation();
+      setActiveSafely(i);
+    }
   }
 
   return (
@@ -172,7 +192,7 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
         <div
           key={i}
           className={`cover-slide ${classFor(i)}`}
-          onClick={(e) => onSlideClick(e, i)}
+          onClickCapture={(e) => onSlideClickCapture(e, i)}
         >
           {isValidElement(slide) ? cloneElement(slide, { isActive: i === active }) : slide}
         </div>

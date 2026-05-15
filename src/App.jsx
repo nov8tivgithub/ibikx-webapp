@@ -64,8 +64,8 @@ export default function App() {
         {/* Home */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/favourites" element={<Favourites />} />
-        <Route path="/category" element={<Category />} />
-        <Route path="/subcategory" element={<Subcategory />} />
+        <Route path="/category/:catKey" element={<Category />} />
+        <Route path="/category/:catKey/subcategory/:subKey" element={<Subcategory />} />
         <Route path="/free-videos" element={<FreeVideos />} />
         <Route path="/my-videos" element={<MyVideos />} />
         <Route path="/video-details" element={<VideoDetails />} />

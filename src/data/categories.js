@@ -84,8 +84,8 @@ export const CATEGORY_ORDER = [
 ];
 
 export function categoryLink(catKey) {
-  return `/subcategory?cat=${catKey}`;
+  return `/category/${encodeURIComponent(catKey)}`;
 }
 export function subLink(catKey, sub) {
-  return `/subcategory?cat=${catKey}&sub=${encodeURIComponent(sub)}`;
+  return `/category/${encodeURIComponent(catKey)}/subcategory/${encodeURIComponent(sub)}`;
 }

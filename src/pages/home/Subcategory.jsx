@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import VideoThumbnail from '../../components/catalog/VideoThumbnail';
 import CardThumbnail from '../../components/catalog/CardThumbnail';
@@ -8,12 +8,12 @@ import { getCardListingService } from '../../services/card.service';
 import { notify } from '../../utils/notify';
 
 export default function Subcategory() {
-  const [params]                       = useSearchParams();
-  // `cat` is the parent category key, `sub` is the leaf sub-category key —
+  // `catKey` is the parent category key, `subKey` is the leaf sub-category key —
   // the listing endpoint takes the leaf key as `categorykey`.
-  const cat                            = params.get('cat') || '';
-  const sub                            = params.get('sub') || '';
-  const subName                        = params.get('name') || 'Subcategory';
+  const { catKey: rawCat, subKey: rawSub } = useParams();
+  const cat                            = decodeURIComponent(rawCat || '');
+  const sub                            = decodeURIComponent(rawSub || '');
+  const subName                        = 'Subcategory';
   const [tab, setTab]                  = useState('videos');
   const { data, loading, error, run }  = useApi(getCardListingService);
 

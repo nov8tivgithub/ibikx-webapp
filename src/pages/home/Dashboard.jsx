@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Volume2, VolumeX } from 'lucide-react';
 import Layout from '../../components/layout/Layout';
 import CoverCarousel from '../../components/common/CoverCarousel';
 import ScrollRow from '../../components/common/ScrollRow';
@@ -17,10 +16,10 @@ const FALLBACK_TABS = [
 ];
 
 // One slide rendered inside the cover carousel — driven by an API card object.
-// For video cards the slide renders an autoplaying looping <video> using
-// `video_path` (with `card_path` as the poster) plus a mute/unmute toggle.
-// Image-only cards fall back to the existing <img>.
-function FeaturedSlide({ card, type }) {
+// `isActive` is injected by CoverCarousel via cloneElement. Only the active
+// video card mounts a <video> element + plays; other video slides show their
+// poster image so we don't decode/stream a dozen videos at once.
+function FeaturedSlide({ card, type, isActive }) {
   const image       = card.card_path || card.imageLink || card.image_path || card.image || card.preview_image || card.thumbnail;
   const video       = card.video_path || card.video || card.videoLink;
   const isVideo     = !!video && (type === 'videos' || card.is_video === '1' || card.is_video === 1 || card.type === 'video');
@@ -32,13 +31,28 @@ function FeaturedSlide({ card, type }) {
   const path        = type === 'videos' ? '/video-details' : '/card-details';
   const to          = `${path}?templatekey=${encodeURIComponent(templatekey || '')}&categorykey=${encodeURIComponent(categorykey)}&type=${encodeURIComponent(type)}`;
 
-  // Browsers only allow autoplay while muted — start muted, let the user unmute.
-  const [muted, setMuted] = useState(true);
   const videoRef = useRef(null);
+  // Browsers only allow autoplay while muted — start muted, let the user unmute.
+  const [muted, setMuted]   = useState(true);
+  const [paused, setPaused] = useState(false);
 
+  // Only the active video card actually mounts a <video> element.
+  const showVideo = isActive && isVideo;
+
+  // Drive playback from React state. If play() rejects (e.g. unmuted autoplay
+  // blocked on a cold refresh), force muted=true and the next effect tick
+  // replays muted so the carousel still animates on first load.
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el || !showVideo) return;
+    if (paused) { el.pause(); return; }
+    el.play().catch(() => { if (!muted) setMuted(true); });
+  }, [showVideo, muted, paused]);
+
+  function stop(e) { e.preventDefault(); e.stopPropagation(); }
+  function togglePause(e) { stop(e); setPaused((p) => !p); }
   function toggleMute(e) {
-    e.preventDefault();
-    e.stopPropagation();
+    stop(e);
     setMuted((m) => {
       const next = !m;
       if (videoRef.current) videoRef.current.muted = next;
@@ -48,7 +62,7 @@ function FeaturedSlide({ card, type }) {
 
   return (
     <Link to={to} className="block w-full h-full relative bg-slate-200">
-      {isVideo ? (
+      {showVideo ? (
         <video
           ref={videoRef}
           src={video}
@@ -71,15 +85,33 @@ function FeaturedSlide({ card, type }) {
       {premium ? (
         <span className={`absolute top-3 left-3 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${badgeCls}`}>{badge}</span>
       ) : null}
-      {isVideo ? (
-        <button
-          type="button"
-          onClick={toggleMute}
-          aria-label={muted ? 'Unmute' : 'Mute'}
-          className="absolute bottom-3 right-3 w-10 h-10 rounded-full bg-white hover:bg-white shadow-md flex items-center justify-center text-slate-900 transition active:scale-95"
-        >
-          {muted ? <VolumeX size={20} strokeWidth={2} /> : <Volume2 size={20} strokeWidth={2} />}
-        </button>
+      {showVideo ? (
+        <div className="absolute bottom-3 right-3 flex items-center gap-2 z-10">
+          <button
+            type="button"
+            onClick={togglePause}
+            aria-label={paused ? 'Play' : 'Pause'}
+            className="w-6 h-6 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur flex items-center justify-center text-white"
+          >
+            {paused ? (
+              <svg style={{ width: 14, height: 14 }} fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5z" /></svg>
+            ) : (
+              <svg style={{ width: 14, height: 14 }} fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" /></svg>
+            )}
+          </button>
+          <button
+            type="button"
+            onClick={toggleMute}
+            aria-label={muted ? 'Unmute' : 'Mute'}
+            className="w-6 h-6 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur flex items-center justify-center text-white"
+          >
+            {muted ? (
+              <svg style={{ width: 14, height: 14 }} fill="currentColor" viewBox="0 0 24 24"><path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73 4.27 3zM12 4 9.91 6.09 12 8.18V4z" /></svg>
+            ) : (
+              <svg style={{ width: 14, height: 14 }} fill="currentColor" viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z" /></svg>
+            )}
+          </button>
+        </div>
       ) : null}
     </Link>
   );
@@ -162,7 +194,7 @@ function ApiCategorySection({ category }) {
         <h2 className="text-lg lg:text-xl font-bold text-slate-900">{category.categoryname}</h2>
         {category.show_viewmore ? (
           <Link
-            to={`/category?cat=${encodeURIComponent(category.categorykey)}&name=${encodeURIComponent(category.categoryname)}`}
+            to={`/category/${encodeURIComponent(category.categorykey)}`}
             className="text-sm font-semibold text-brand-blue hover:underline"
           >
             View All
@@ -175,7 +207,7 @@ function ApiCategorySection({ category }) {
             key={sub.categoryid}
             title={sub.categoryname}
             image={sub.imageLink}
-            to={`/subcategory?cat=${encodeURIComponent(category.categorykey)}&sub=${encodeURIComponent(sub.categorykey)}&name=${encodeURIComponent(sub.categoryname)}`}
+            to={`/category/${encodeURIComponent(category.categorykey)}/subcategory/${encodeURIComponent(sub.categorykey)}`}
           />
         ))}
       </ScrollRow>

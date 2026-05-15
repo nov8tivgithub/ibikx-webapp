@@ -166,14 +166,16 @@ body {
   .cover-slide { width: 16rem; }
 }
 .cover-slide.pos-active { transform: translateX(0) scale(1.4); opacity: 1; z-index: 6; box-shadow: 0 30px 60px -20px rgba(15, 23, 42, 0.55); }
-.cover-slide.pos-prev { transform: translateX(-105%) scale(0.85); opacity: 1; z-index: 4; }
-.cover-slide.pos-next { transform: translateX(105%) scale(0.85); opacity: 1; z-index: 4; }
-.cover-slide.pos-edge-l { transform: translateX(-185%) scale(0.65); opacity: 1; z-index: 3; }
-.cover-slide.pos-edge-r { transform: translateX(185%) scale(0.65); opacity: 1; z-index: 3; }
-.cover-slide.pos-edge2-l { transform: translateX(-245%) scale(0.5); opacity: 1; z-index: 2; }
-.cover-slide.pos-edge2-r { transform: translateX(245%) scale(0.5); opacity: 1; z-index: 2; }
-.cover-slide.pos-edge3-l { transform: translateX(-290%) scale(0.4); opacity: 1; z-index: 2; }
-.cover-slide.pos-edge3-r { transform: translateX(290%) scale(0.4); opacity: 1; z-index: 2; }
+.cover-slide.pos-prev { transform: translateX(-125%) scale(1.05); opacity: 1; z-index: 4; }
+.cover-slide.pos-next { transform: translateX(125%) scale(1.05); opacity: 1; z-index: 4; }
+.cover-slide.pos-edge-l { transform: translateX(-215%) scale(0.88); opacity: 1; z-index: 3; }
+.cover-slide.pos-edge-r { transform: translateX(215%) scale(0.88); opacity: 1; z-index: 3; }
+.cover-slide.pos-edge2-l { transform: translateX(-295%) scale(0.72); opacity: 1; z-index: 2; }
+.cover-slide.pos-edge2-r { transform: translateX(295%) scale(0.72); opacity: 1; z-index: 2; }
+.cover-slide.pos-edge3-l { transform: translateX(-360%) scale(0.6); opacity: 1; z-index: 2; }
+.cover-slide.pos-edge3-r { transform: translateX(360%) scale(0.6); opacity: 1; z-index: 2; }
+.cover-slide.pos-edge4-l { transform: translateX(-425%) scale(0.5); opacity: 1; z-index: 1; }
+.cover-slide.pos-edge4-r { transform: translateX(425%) scale(0.5); opacity: 1; z-index: 1; }
 .cover-slide.pos-hidden { transform: scale(0.4); opacity: 0; pointer-events: none; z-index: 1; }
 .cover-carousel.is-dragging .cover-slide,
 .cover-slide.cover-skip-tx { transition: none; }
