@@ -139,47 +139,122 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 26rem;
+  height: 32rem;
   overflow: hidden;
-  perspective: 1200px;
+  perspective: 1400px;
+  perspective-origin: center 55%;
   touch-action: pan-y;
   user-select: none;
+  /* Depth pass — two stacked radials. The top one is a soft blue spotlight
+     behind the active card, the bottom one is a wide elliptical ground
+     shadow so the whole carousel reads as floating above the page. */
+  background:
+    radial-gradient(ellipse 30% 50% at 50% 50%, rgba(59, 130, 246, 0.13), transparent 70%),
+    radial-gradient(ellipse 55% 10% at 50% 96%, rgba(15, 23, 42, 0.18), transparent 75%);
+  cursor: grab;
 }
+.cover-carousel.is-dragging { cursor: grabbing; }
+/* Stop the browser's native drag/ghost behaviour on <a>, <img>, <video> so
+   pointer events keep flowing into the carousel for swipe detection. */
+.cover-carousel a,
+.cover-carousel img,
+.cover-carousel video {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
+.cover-carousel.is-dragging * { cursor: grabbing; }
 @media (min-width: 1024px) {
-  .cover-carousel { height: 30rem; }
+  .cover-carousel { height: 36rem; }
 }
+/* Soft fade at the edges so cards drift out of frame instead of being hard-clipped. */
+.cover-carousel::before,
+.cover-carousel::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6rem;
+  z-index: 8;
+  pointer-events: none;
+}
+.cover-carousel::before { left: 0;  background: linear-gradient(to right, #ffffff, rgba(255, 255, 255, 0)); }
+.cover-carousel::after  { right: 0; background: linear-gradient(to left,  #ffffff, rgba(255, 255, 255, 0)); }
 .cover-slide {
   position: absolute;
-  width: 14rem;
+  width: 15rem;
   aspect-ratio: 3 / 4;
-  border-radius: 1rem;
-  overflow: hidden;
+  border-radius: 1.25rem;
   background: #1e293b;
+  /* clip-path keeps the rounded shape through 3D transforms — overflow:hidden
+     alone glitches in Chrome (square corners flash for one frame as the GPU
+     promotes the layer during the next-card transition). */
+  -webkit-clip-path: inset(0 round 1.25rem);
+          clip-path: inset(0 round 1.25rem);
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  will-change: transform, opacity;
   transition:
     transform 0.55s cubic-bezier(0.4, 0, 0.2, 1),
     opacity 0.55s ease,
-    box-shadow 0.55s ease;
+    box-shadow 0.45s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
-  box-shadow: 0 12px 40px -12px rgba(15, 23, 42, 0.35);
+  box-shadow:
+    0 2px 4px rgba(15, 23, 42, 0.05),
+    0 12px 28px rgba(15, 23, 42, 0.12);
+}
+/* Image / video container — fills the card, used as the anchor for the
+   absolutely-positioned controls overlay. */
+.cover-slide .cover-slide-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 @media (min-width: 1024px) {
-  .cover-slide { width: 16rem; }
+  .cover-slide { width: 17.5rem; }
 }
-.cover-slide.pos-active { transform: translateX(0) scale(1.4); opacity: 1; z-index: 6; box-shadow: 0 30px 60px -20px rgba(15, 23, 42, 0.55); }
-.cover-slide.pos-prev { transform: translateX(-125%) scale(1.05); opacity: 1; z-index: 4; }
-.cover-slide.pos-next { transform: translateX(125%) scale(1.05); opacity: 1; z-index: 4; }
-.cover-slide.pos-edge-l { transform: translateX(-215%) scale(0.88); opacity: 1; z-index: 3; }
-.cover-slide.pos-edge-r { transform: translateX(215%) scale(0.88); opacity: 1; z-index: 3; }
-.cover-slide.pos-edge2-l { transform: translateX(-295%) scale(0.72); opacity: 1; z-index: 2; }
-.cover-slide.pos-edge2-r { transform: translateX(295%) scale(0.72); opacity: 1; z-index: 2; }
-.cover-slide.pos-edge3-l { transform: translateX(-360%) scale(0.6); opacity: 1; z-index: 2; }
-.cover-slide.pos-edge3-r { transform: translateX(360%) scale(0.6); opacity: 1; z-index: 2; }
-.cover-slide.pos-edge4-l { transform: translateX(-425%) scale(0.5); opacity: 1; z-index: 1; }
-.cover-slide.pos-edge4-r { transform: translateX(425%) scale(0.5); opacity: 1; z-index: 1; }
-.cover-slide.pos-hidden { transform: scale(0.4); opacity: 0; pointer-events: none; z-index: 1; }
-.cover-carousel.is-dragging .cover-slide,
-.cover-slide.cover-skip-tx { transition: none; }
+/* Active card centred, slightly smaller scale than before so neighbours read clearly. */
+/* Active card — slightly lifted with a three-layer cinematic shadow stack. */
+.cover-slide.pos-active {
+  transform: translateX(0) translateY(-6px) scale(1.32);
+  opacity: 1;
+  z-index: 10;
+  box-shadow:
+    0 4px 8px rgba(15, 23, 42, 0.06),
+    0 24px 48px rgba(15, 23, 42, 0.18),
+    0 40px 80px rgba(15, 23, 42, 0.10);
+}
+/* Side cards tilt inward via rotateY for a real coverflow 3D feel, with
+   viewport-relative translateX so the outermost cards always stay inside the
+   visible width regardless of how wide the screen is. */
+.cover-slide.pos-prev    { transform: translateX(-13vw) scale(1.08) rotateY(12deg);  opacity: 1; z-index: 5; }
+.cover-slide.pos-next    { transform: translateX(13vw)  scale(1.08) rotateY(-12deg); opacity: 1; z-index: 5; }
+.cover-slide.pos-edge-l  { transform: translateX(-22vw) scale(0.92) rotateY(18deg);  opacity: 1; z-index: 4; }
+.cover-slide.pos-edge-r  { transform: translateX(22vw)  scale(0.92) rotateY(-18deg); opacity: 1; z-index: 4; }
+.cover-slide.pos-edge2-l { transform: translateX(-30vw) scale(0.78) rotateY(24deg);  opacity: 1; z-index: 3; }
+.cover-slide.pos-edge2-r { transform: translateX(30vw)  scale(0.78) rotateY(-24deg); opacity: 1; z-index: 3; }
+.cover-slide.pos-edge3-l { transform: translateX(-37vw) scale(0.66) rotateY(28deg);  opacity: 1; z-index: 2; }
+.cover-slide.pos-edge3-r { transform: translateX(37vw)  scale(0.66) rotateY(-28deg); opacity: 1; z-index: 2; }
+.cover-slide.pos-edge4-l { transform: translateX(-43vw) scale(0.56) rotateY(32deg);  opacity: 1; z-index: 1; }
+.cover-slide.pos-edge4-r { transform: translateX(43vw)  scale(0.56) rotateY(-32deg); opacity: 1; z-index: 1; }
+/* Subtle inner gradient on every card adds depth + masks the slate-200
+   placeholder bg before images load. */
+.cover-slide::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0, rgba(0, 0, 0, 0) 35%, rgba(0, 0, 0, 0.22) 100%),
+    radial-gradient(circle at 30% 0%, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0) 55%);
+  z-index: 1;
+}
+.cover-slide.pos-hidden  { transform: scale(0.4); opacity: 0; pointer-events: none; z-index: 0; }
+.cover-carousel.is-dragging .cover-slide { transition: none; }
 
+/* Prev/Next arrows are hidden — the carousel is fully swipe / drag driven.
+   The remaining rules below stay in place so flipping `display` back to flex
+   re-enables them without retyping the styles. */
+.cover-prev, .cover-next { display: none !important; }
 .cover-prev, .cover-next {
   position: absolute;
   top: 50%;
@@ -188,7 +263,6 @@ body {
   border-radius: 9999px;
   background: rgba(255, 255, 255, 0.95);
   color: #0f172a;
-  display: flex;
   align-items: center;
   justify-content: center;
   box-shadow: 0 6px 20px -6px rgba(15, 23, 42, 0.35);

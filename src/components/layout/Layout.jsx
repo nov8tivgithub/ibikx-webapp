@@ -11,7 +11,7 @@ export default function Layout({ active, title, back = false, loading = false, c
       <Sidebar active={active} />
       <div className="with-sidebar min-h-screen">
         <Topbar title={title} back={back} />
-        <main className="px-4 lg:px-8 py-6">
+        <main className="px-4 lg:px-6 py-3">
           {loading ? <PageSpinner /> : children}
         </main>
         <Footer />

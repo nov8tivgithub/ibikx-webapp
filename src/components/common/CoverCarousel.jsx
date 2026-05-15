@@ -1,4 +1,4 @@
-import { cloneElement, isValidElement, useEffect, useMemo, useRef, useState } from 'react';
+import { cloneElement, isValidElement, useEffect, useRef, useState } from 'react';
 
 // How many neighbours to show on each side of the active slide based on
 // viewport width. Total visible slots = range * 2 + 1.
@@ -22,30 +22,20 @@ function rangeForViewport() {
 // Coverflow-style carousel. `slides` is an array of React nodes; each one
 // is wrapped in a .cover-slide. Active slide is centered and scaled up,
 // neighbours fan out via the .pos-* classes (defined in index.css).
+//
+// LOOPING: the carousel cycles through the available cards (active + 1 → ...
+// → last → 0 again). It never duplicates a card to "fill" the layout — the
+// range is capped at floor((n-1)/2) so e.g. 3 cards show as a 3-slot loop and
+// 7 cards as a 7-slot loop.
 export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
+  const n = slides.length;
   const [active, setActive] = useState(0);
   // Initial range is computed eagerly from the viewport so the first render
-  // already matches the final layout. Without this, the carousel would mount
-  // with a default range and then jump in the next effect tick, producing a
-  // visible self-scroll as every side slide animates into its new position.
+  // already matches the final layout.
   const [range, setRange] = useState(() => rangeForViewport());
-  // If there are fewer real cards than visible slots for the current range,
-  // pad the array by repeating cards (e.g. 7 cards on a 9-slot layout → cards
-  // [0..6, 0, 1] so the side positions stay filled instead of leaving gaps).
-  const paddedSlides = useMemo(() => {
-    if (!slides.length) return slides;
-    const min = range * 2 + 1;
-    if (slides.length >= min) return slides;
-    const out = [];
-    for (let i = 0; i < min; i++) out.push(slides[i % slides.length]);
-    return out;
-  }, [slides, range]);
-  const n = paddedSlides.length;
-  // Indices whose offset wraps across the circular boundary on the current
-  // transition (e.g. a slide jumping from far-left to far-right when there
-  // are only 3 slides). Those get transition: none for one frame so they
-  // snap to the new side instead of sliding across the carousel.
-  const [skipTx, setSkipTx] = useState(() => new Set());
+  // (No wrap-snap state any more — wraps animate naturally across the
+  // carousel so the rotateY + translateX interpolation produces a circling
+  // effect between sides.)
   const rootRef = useRef(null);
   const draggingRef = useRef(false);
   // null means "no drag in progress" — the pointer handlers below early-return
@@ -53,16 +43,18 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
   const dragStartXRef = useRef(null);
   const dragDxRef = useRef(0);
 
-  // Visible neighbours per side based on viewport width. We don't cap by the
-  // raw slide count any more — paddedSlides duplicates cards to fill the slots
-  // when there are too few. Below 3 unique cards we keep range small so the
-  // user doesn't see the same card 3+ times on screen.
+  // Keep `active` in bounds if the slide count drops.
+  useEffect(() => {
+    if (n === 0) return;
+    if (active >= n) setActive(0);
+  }, [n, active]);
+
+  // Range is the smaller of the viewport target and how many unique cards
+  // we have on each side — so 3 cards never become a "7-with-repeats" loop.
   useEffect(() => {
     function computeRange() {
       const target = rangeForViewport();
-      const cap = slides.length >= 3
-        ? target
-        : Math.floor(Math.max(0, slides.length - 1) / 2);
+      const cap = Math.floor(Math.max(0, n - 1) / 2);
       setRange(Math.max(0, Math.min(target, cap)));
     }
     computeRange();
@@ -76,9 +68,10 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
       window.removeEventListener('resize', onResize);
       clearTimeout(timer);
     };
-  }, [slides.length]);
+  }, [n]);
 
   function offsetFrom(i, base) {
+    if (n <= 1) return i - base;
     let off = i - base;
     if (off > n / 2) off -= n;
     if (off < -n / 2) off += n;
@@ -101,43 +94,31 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
     else if (offset === -5 && range >= 5) cls = 'pos-edge4-l';
     else if (offset === 5 && range >= 5) cls = 'pos-edge4-r';
     else cls = 'pos-hidden';
-    return skipTx.has(i) ? `${cls} cover-skip-tx` : cls;
+    return cls;
   }
 
   function setActiveSafely(newActive) {
-    if (newActive === active) return;
-    // Mark slides whose offset change is too large to animate cleanly — those
-    // would otherwise fly across the carousel during a circular wrap.
-    const wraps = new Set();
-    for (let i = 0; i < n; i++) {
-      const oldOff = offsetFrom(i, active);
-      const newOff = offsetFrom(i, newActive);
-      if (Math.abs(newOff - oldOff) > 1.5) wraps.add(i);
-    }
-    setSkipTx(wraps);
+    if (newActive === active || n <= 1) return;
     setActive(newActive);
   }
 
-  // After applying skipTx (no-transition snap), clear it next frame so the
-  // affected slides resume normal transitions for the following move.
-  useEffect(() => {
-    if (skipTx.size === 0) return;
-    const id = requestAnimationFrame(() =>
-      requestAnimationFrame(() => setSkipTx(new Set()))
-    );
-    return () => cancelAnimationFrame(id);
-  }, [skipTx]);
 
-  function next() { setActiveSafely((active + 1) % n); }
-  function prev() { setActiveSafely((active - 1 + n) % n); }
+  function next() { if (n > 1) setActiveSafely((active + 1) % n); }
+  function prev() { if (n > 1) setActiveSafely((active - 1 + n) % n); }
 
-  // Drag handlers
+  // Drag / swipe handlers. Pointer capture is intentionally deferred until
+  // the gesture clears the 8px drag threshold — otherwise capture redirects
+  // click target away from the inner <Link>, and taps stop navigating.
+  // preventDefault on move (while dragging) keeps the browser from hijacking
+  // the gesture for text selection / horizontal scroll.
+  const capturedPointerRef = useRef(null);
   function onPointerDown(e) {
     if (e.target.closest('.cover-prev, .cover-next')) return;
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     dragStartXRef.current = e.clientX;
     dragDxRef.current = 0;
     draggingRef.current = false;
+    capturedPointerRef.current = null;
   }
   function onPointerMove(e) {
     if (dragStartXRef.current === null) return;
@@ -145,18 +126,33 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
     if (!draggingRef.current && Math.abs(dragDxRef.current) > 8) {
       draggingRef.current = true;
       rootRef.current?.classList.add('is-dragging');
+      // Only NOW grab pointer capture — taps short-circuited before this so
+      // the browser's normal click → <Link> path is preserved.
+      try {
+        rootRef.current?.setPointerCapture(e.pointerId);
+        capturedPointerRef.current = e.pointerId;
+      } catch { /* noop */ }
+    }
+    if (draggingRef.current) {
+      // Stop the browser from interpreting this as a horizontal scroll /
+      // selection. Cancelable check guards against passive-listener errors.
+      if (e.cancelable) e.preventDefault();
     }
   }
-  function onPointerUp() {
+  function onPointerUp(e) {
     if (dragStartXRef.current === null) return;
     const dx = dragDxRef.current;
     dragStartXRef.current = null;
     rootRef.current?.classList.remove('is-dragging');
-    if (Math.abs(dx) > 50) {
+    if (capturedPointerRef.current !== null) {
+      try { rootRef.current?.releasePointerCapture(capturedPointerRef.current); } catch { /* noop */ }
+      capturedPointerRef.current = null;
+    }
+    if (Math.abs(dx) > 40) {
       dx < 0 ? next() : prev();
     }
     if (draggingRef.current) {
-      // Block the click that may fire from the same pointer sequence.
+      // Block the synthetic click that may fire from the same pointer sequence.
       setTimeout(() => { draggingRef.current = false; }, 0);
     }
   }
@@ -176,19 +172,33 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
     }
   }
 
+  // Single-card shortcut: no arrows, no drag plumbing, just the slide.
+  if (n === 1) {
+    return (
+      <div className="cover-carousel mb-4" aria-label={ariaLabel}>
+        <div className="cover-slide pos-active">
+          {isValidElement(slides[0]) ? cloneElement(slides[0], { isActive: true }) : slides[0]}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={rootRef}
-      className="cover-carousel mb-8"
+      className="cover-carousel mb-4"
       aria-label={ariaLabel}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
-      onPointerLeave={onPointerUp}
       onClickCapture={onClickCapture}
+      // Stops the browser's built-in image/anchor drag ghost — without this
+      // pressing on the active card triggers native drag and pointer events
+      // stop flowing for the rest of the gesture.
+      onDragStart={(e) => e.preventDefault()}
     >
-      {paddedSlides.map((slide, i) => (
+      {slides.map((slide, i) => (
         <div
           key={i}
           className={`cover-slide ${classFor(i)}`}
@@ -197,7 +207,7 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
           {isValidElement(slide) ? cloneElement(slide, { isActive: i === active }) : slide}
         </div>
       ))}
-      <button className="cover-prev" aria-label="Previous" onClick={(e) => { e.preventDefault(); prev(); }}>
+      {/* <button className="cover-prev" aria-label="Previous" onClick={(e) => { e.preventDefault(); prev(); }}>
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
         </svg>
@@ -206,7 +216,7 @@ export default function CoverCarousel({ slides, ariaLabel = 'Carousel' }) {
         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
         </svg>
-      </button>
+      </button> */}
     </div>
   );
 }

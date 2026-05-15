@@ -1,8 +1,15 @@
 import { MakeAxiosRequest } from '../api/request';
 import { MakeFileUpload } from '../api/upload';
 
+// /myaccount — fetches the signed-in user's full profile blob (name, email,
+// user_type / dealer flags, agent code, subscription status, etc.).
 export const getProfileService = (signal) =>
-  MakeAxiosRequest('post', '/myprofile', {}, signal);
+  MakeAxiosRequest('post', '/myaccount', {}, signal);
+
+// /settings — sub-options for a given menuList entry (e.g. key="myaccount"
+// returns the items shown inside the My Account panel).
+export const getSettingsService = (key, signal) =>
+  MakeAxiosRequest('post', '/settings', { key }, signal);
 
 export const updateProfileService = (payload, signal) =>
   MakeAxiosRequest('post', '/updateprofile', payload, signal);

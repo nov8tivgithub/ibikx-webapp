@@ -12,9 +12,13 @@ export default function CategoryTile({ title, image, to }) {
         className="w-full h-full object-cover"
         onError={(e) => { e.currentTarget.style.display = 'none'; }}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/15 to-transparent" />
-      <div className="absolute bottom-3 left-3 right-3 text-white font-semibold text-base drop-shadow">
-        {title}
+      {/* App-style solid bottom band with a hint of blur — the title sits on
+          a translucent slate panel rather than a smooth gradient, matching
+          the mobile app's "My Videos / Free Videos" tile pattern. */}
+      <div className="absolute inset-x-0 bottom-0 px-3 py-2 backdrop-blur-sm bg-slate-900/55">
+        <p className="text-white font-semibold text-sm leading-tight truncate">
+          {title}
+        </p>
       </div>
     </Link>
   );

@@ -1,33 +1,151 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
-import SettingsRow from '../../components/common/SettingsRow';
 import { useAuth } from '../../context/AuthContext';
+import { useApi } from '../../hooks/useApi';
+import { useApiOnMount } from '../../hooks/useApiOnMount';
+import { getProfileService, getSettingsService } from '../../services/profile.service';
+import { notify } from '../../utils/notify';
+
+// SubOption row used in the right-pane detail view. Items from the /settings
+// response carry: { title, iconUrl, moduleName, url, menuColor }.
+//   moduleName "webPage" → open `url` in a new tab.
+//   moduleName "settings" / others starting with "/" → in-app Link.
+// The card's background uses menuColor when supplied (Delete Account ships a
+// soft amber tint via "#ffeaa7" in the captured response, for example).
+function SubOptionRow({ item }) {
+  const mod    = (item.moduleName || '').toLowerCase();
+  const target = item.url || item.key || '';
+  const isHttp = /^https?:/i.test(target);
+  const bg     = item.menuColor && item.menuColor !== '#ffffff' ? item.menuColor : '#ffffff';
+
+  const inner = (
+    <>
+      <span className="w-10 h-10 rounded-full bg-slate-100/70 flex items-center justify-center text-slate-600 overflow-hidden shrink-0">
+        {item.iconUrl ? (
+          <img
+            src={item.iconUrl}
+            alt=""
+            className="w-6 h-6 object-contain"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+          />
+        ) : null}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-slate-900 truncate">{item.title}</p>
+        {item.desc ? <p className="text-xs text-slate-500 mt-0.5 truncate">{item.desc}</p> : null}
+      </div>
+      <svg className="w-5 h-5 text-slate-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+      </svg>
+    </>
+  );
+  const cls = 'settings-row flex items-center gap-4 px-4 py-4 rounded-2xl border border-slate-200 hover:border-brand-blue/40 transition mb-3';
+  const style = { background: bg };
+
+  if (mod === 'webpage' || isHttp) {
+    return <a href={target || '#'} target="_blank" rel="noopener noreferrer" className={cls} style={style}>{inner}</a>;
+  }
+  // In-app fallback. Defaults to '#' if no destination supplied.
+  return <Link to={target || '#'} className={cls} style={style}>{inner}</Link>;
+}
 
 export default function Profile() {
   const [copied, setCopied]         = useState(false);
   const [confirmLogout, setConfirm] = useState(false);
+  const [selectedKey, setSelectedKey] = useState('myaccount');
   const navigate                    = useNavigate();
-  const { user, logout }            = useAuth();
+  const { user, logout, refreshUser } = useAuth();
 
-  // Pull display data from the merged user payload (login + dashboard userinfo).
-  const fullName  = user?.name
-                  || `${user?.first_name || ''} ${user?.last_name || ''}`.trim()
-                  || user?.title?.replace(/^Hi,\s*/, '').replace(/[👋\s]+$/, '')
-                  || 'David John';
-  const email        = user?.email || 'test100@icwares.com';
-  const agentLine    = user?.agent_code ? `AGENT/${user.agent_code}` : (user?.lic_code ? `AGENT/${user.lic_code}` : 'AGENT/—');
-  const initials     = (fullName.match(/\b\w/g) || []).slice(0, 2).join('').toUpperCase() || 'DJ';
-  const avatarUrl    = user?.imagelink || user?.profile_image;
-  const referralCode = user?.referral_code || user?.referralcode || '53AA6D';
-  const expiry       = user?.expiry_date || user?.subscription_expiry;
-  const expiryDays   = user?.expiry_days ?? user?.subscription_days_left;
+  const { data, loading, error } = useApiOnMount(getProfileService);
+  useEffect(() => { if (error) notify.error(error); }, [error]);
+
+  // Merge data.user into stored user. Skip menuList so the dashboard-supplied
+  // header menu isn't replaced. Map image→imagelink, username→name,
+  // designation→user_type so other pages see consistent field names.
+  useEffect(() => {
+    const u = data?.user;
+    if (!u || typeof u !== 'object') return;
+    const incoming = { ...u };
+    if (u.image && !u.imagelink) incoming.imagelink = u.image;
+    if (u.username && !u.name)   incoming.name      = u.username;
+    if (u.designation && !u.user_type) incoming.user_type = u.designation;
+    const merged = { ...(user || {}), ...incoming };
+    const same = Object.keys(incoming).every(
+      (k) => JSON.stringify(user?.[k]) === JSON.stringify(incoming[k]),
+    );
+    if (same) return;
+    refreshUser(merged);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  const u = data?.user || user || {};
+
+  const fullName     = u.username || u.name
+                     || `${u.first_name || ''} ${u.last_name || ''}`.trim()
+                     || '—';
+  const email        = u.email || '';
+  const avatarUrl    = u.image || u.imagelink || u.profile_image;
+  const initials     = (fullName.match(/\b\w/g) || []).slice(0, 2).join('').toUpperCase() || '?';
+  const agentLine    = u.title || (u.agent_code ? `AGENT/${u.agent_code}` : '');
+
+  const showReferral      = u.show_referral_code === '1' || u.show_referral_code === 1;
+  const referralCode      = u.referral_code || '';
+  const referralLabel     = u.referral_code_label || 'Referral Code:';
+  const referralCopyLabel = u.referral_code_copy_label || 'Copied!';
+
+  const expiry       = u.expirydate || u.expiry_date || u.subscription_expiry;
+  const expiryStatus = u.expiringon || (u.expiry_days != null ? `Expiring in ${u.expiry_days} day(s)` : '');
+  const expiryColor  = u.expirydatecolor || '#0f172a';
+
+  const settingsItems = useMemo(
+    () => (Array.isArray(data?.menuList) ? data.menuList : []),
+    [data],
+  );
+
+  // Pick a sensible default on first load — the first "settings" item the
+  // backend returns (e.g. myaccount).
+  useEffect(() => {
+    if (selectedKey && settingsItems.some((i) => i.key === selectedKey)) return;
+    const firstSettings = settingsItems.find((i) => (i.moduleName || '').toLowerCase() === 'settings');
+    if (firstSettings) setSelectedKey(firstSettings.key);
+  }, [settingsItems, selectedKey]);
+
+  // /settings fetch for the currently-selected settings item.
+  const {
+    data:    settingsData,
+    loading: settingsLoading,
+    error:   settingsError,
+    run:     runSettings,
+  } = useApi(getSettingsService);
+  useEffect(() => { if (settingsError) notify.error(settingsError); }, [settingsError]);
+  useEffect(() => {
+    if (!selectedKey) return;
+    runSettings(selectedKey);
+  }, [selectedKey, runSettings]);
+
+  // The /settings response uses `subList` or `items` or `menuList` depending
+  // on the endpoint version — accept any of them.
+  const subOptions = useMemo(() => {
+    const d = settingsData || {};
+    return Array.isArray(d.subList)  ? d.subList
+         : Array.isArray(d.items)    ? d.items
+         : Array.isArray(d.menuList) ? d.menuList
+         : Array.isArray(d)          ? d
+         : [];
+  }, [settingsData]);
+
+  const cert                 = data?.certificate;
+  const showCertificates     = cert?.show_certificate === '1' || cert?.show_certificate === 1;
+  const showViewCertificates = cert?.show_view_certificates === '1' || cert?.show_view_certificates === 1;
+  const certificateData      = Array.isArray(cert?.certificate_data) ? cert.certificate_data : [];
 
   async function copyReferral() {
+    if (!referralCode) return;
     try {
       await navigator.clipboard.writeText(referralCode);
       setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
+      setTimeout(() => setCopied(false), 1500);
     } catch {
       /* ignore */
     }
@@ -37,84 +155,168 @@ export default function Profile() {
     logout();
     navigate('/login', { replace: true });
   }
+
+  // Handle a click on a sidebar settings item. For "settings" items we just
+  // change the right-pane selection; the other module types still perform
+  // their original side-effect (open URL, share, logout).
+  function onSidebarItem(item) {
+    const mod = (item.moduleName || '').toLowerCase();
+    if (mod === 'logout' || /logout|signout|sign\s*out/i.test(item.title || '')) {
+      setConfirm(true);
+      return;
+    }
+    if (mod === 'webpage') {
+      window.open(item.key, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    if (mod === 'sharetext') {
+      const text = item.key || '';
+      if (navigator.share) navigator.share({ title: item.title || '', text }).catch(() => {});
+      else if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(
+        () => notify.success('Share text copied to clipboard'),
+        () => notify.error('Unable to copy share text'),
+      );
+      return;
+    }
+    // settings: switch the right pane.
+    setSelectedKey(item.key);
+  }
+
+  const selectedItem = settingsItems.find((i) => i.key === selectedKey);
+
+  // Gate the entire page on /myaccount — no header, no skeleton; just the
+  // standard PageSpinner from Layout until the first response lands.
   return (
-    <Layout active="profile" title="Profile">
-      <section className="flex flex-col md:flex-row md:items-center md:justify-between gap-6 pb-6 border-b border-slate-100">
-        <div className="flex items-center gap-4 text-left">
-          <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-full ring-4 ring-brand-blue/40 overflow-hidden bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-2xl shrink-0">
-            {avatarUrl
-              ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-              : initials}
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">{fullName}</h2>
-            <p className="text-slate-500">{email}</p>
-            <p className="text-sm font-semibold text-slate-600 mt-1">{agentLine}</p>
-          </div>
-        </div>
-        <div className="md:text-right space-y-3 shrink-0">
-          <div className="flex md:justify-end items-center gap-3">
-            <span className="text-sm font-semibold text-slate-700">Referral Code:</span>
-            <button onClick={copyReferral} className="inline-flex items-center gap-2 text-brand-blue font-bold">
-              {copied ? 'Copied!' : referralCode}
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 9h10v10H9zM5 5h10v4M5 5v10h4" />
-              </svg>
-            </button>
-          </div>
-          {(expiry || expiryDays != null) && (
-            <div className="flex md:justify-end items-baseline gap-3">
-              <span className="text-sm font-semibold text-slate-700">Expiry:</span>
-              <div>
-                {expiry ? <p className="font-bold text-slate-900">{expiry}</p> : null}
-                {expiryDays != null ? <p className="text-xs text-slate-500">Expiring in {expiryDays} day(s)</p> : null}
-              </div>
+    <Layout active="profile" title="Profile" loading={!data}>
+      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
+        {/* LEFT — settings nav, ALWAYS visible on the left side, with the
+            currently-selected item highlighted. */}
+        <aside className="lg:sticky lg:top-4 self-start">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">General Settings</h3>
+          <nav className="flex flex-col gap-2">
+            {settingsItems.map((item) => {
+              const mod      = (item.moduleName || '').toLowerCase();
+              const isLogout = mod === 'logout' || /logout|signout|sign\s*out/i.test(item.title || '');
+              const isActive = item.key === selectedKey && mod === 'settings';
+              return (
+                <button
+                  key={item.title}
+                  type="button"
+                  onClick={() => onSidebarItem(item)}
+                  className={[
+                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition border',
+                    isActive
+                      ? 'bg-brand-blue text-white border-brand-blue shadow-soft'
+                      : 'border-slate-200 hover:border-brand-blue/40 bg-white',
+                  ].join(' ')}
+                  style={!isActive && item.menuColor && item.menuColor !== '#ffffff' ? { background: item.menuColor } : undefined}
+                >
+                  <span className="w-8 h-8 rounded-full bg-white/40 flex items-center justify-center overflow-hidden shrink-0">
+                    {item.iconUrl ? (
+                      <img
+                        src={item.iconUrl}
+                        alt=""
+                        className="w-5 h-5 object-contain"
+                        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                      />
+                    ) : null}
+                  </span>
+                  <span className={`text-sm font-semibold flex-1 truncate ${isLogout && !isActive ? 'text-rose-600' : ''}`}>
+                    {item.title}
+                  </span>
+                  {!isLogout ? (
+                    <svg className={`w-4 h-4 ${isActive ? 'text-white/80' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 18l6-6-6-6" />
+                    </svg>
+                  ) : null}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {/* RIGHT — profile header, certificates, then the selected item's
+            sub-options (e.g. "My Account" → Profile / Change Password / …). */}
+        <div className="min-w-0">
+          <section className="flex flex-col md:flex-row md:items-center gap-5 pb-5 border-b border-slate-100">
+            <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-full ring-[3px] ring-brand-blue overflow-hidden bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-2xl shrink-0">
+              {avatarUrl
+                ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                : initials}
             </div>
-          )}
-        </div>
-      </section>
+            <div className="flex-1 min-w-0">
+              <h2 className="text-2xl font-extrabold text-slate-900 truncate">{fullName}</h2>
+              {email ? <p className="text-slate-500 truncate">{email}</p> : null}
+              {agentLine ? (
+                <p className="text-xs font-bold text-slate-700 mt-1 uppercase tracking-wider">{agentLine}</p>
+              ) : null}
+              {showReferral && referralCode ? (
+                <div className="mt-2 flex items-center gap-2">
+                  <span className="text-xs font-semibold text-slate-700">{referralLabel}</span>
+                  <button onClick={copyReferral} className="inline-flex items-center gap-2 text-brand-blue text-sm font-bold">
+                    {copied ? referralCopyLabel : referralCode}
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 9h10v10H9zM5 5h10v4M5 5v10h4" />
+                    </svg>
+                  </button>
+                </div>
+              ) : null}
+            </div>
+            {(expiry || expiryStatus) ? (
+              <div className="md:text-right shrink-0">
+                <p className="text-xs text-slate-500 font-semibold">Expiry</p>
+                {expiry ? <p className="text-sm font-bold text-slate-900">{expiry}</p> : null}
+                {expiryStatus ? (
+                  <p className="text-xs font-semibold mt-0.5" style={{ color: expiryColor }}>{expiryStatus}</p>
+                ) : null}
+              </div>
+            ) : null}
+          </section>
 
-      <section className="mt-8">
-        <div className="flex items-baseline justify-between mb-3">
-          <h3 className="text-xl font-bold text-slate-900">Certificates</h3>
-          <a href="/certificates" className="text-sm font-semibold text-brand-blue hover:underline">View Certificates</a>
-        </div>
-        <p className="text-sm text-slate-500">You have 0 certificates</p>
-        <div className="flex gap-3 mt-3 overflow-x-auto pb-1">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <img
-              key={i}
-              src={`${import.meta.env.BASE_URL}assets/img/certificate-placeholder.jpg`}
-              alt=""
-              className="w-16 h-20 object-contain shrink-0 opacity-70"
-              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            />
-          ))}
-        </div>
-      </section>
 
-      <section className="mt-8">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3">General Settings</h3>
-        <SettingsRow title="My Account" subtitle="Manage your account here" to="/account" iconPath="M16 14a4 4 0 1 0-8 0M12 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM5 21a7 7 0 0 1 14 0" />
-        <SettingsRow title="Card Subscription Plans" subtitle="Manage your subscriptions" to="/card-subscriptions" iconPath="M3 7h18v10H3zM7 11h10M7 14h6" />
-        <SettingsRow title="Video Subscription Plans" subtitle="Remaining Credits: 9" to="/video-subscriptions" iconPath="M15 10l4.553-2.276A1 1 0 0 1 21 8.618v6.764a1 1 0 0 1-1.447.894L15 14M5 18h8a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2z" />
-        <SettingsRow title="Refer & Earn" to="/refer-and-earn" iconPath="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-        <SettingsRow title="Wallet" subtitle="Balance 0 pts" to="/wallet" iconPath="M3 7h18a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a1 1 0 0 1 1-1h14M16 12h2" />
-        <SettingsRow title="About" subtitle="Know more about us" to="/about" iconPath="M12 8v4M12 16h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z" />
-        <SettingsRow title="Share App" subtitle="Share with your dear ones" external to="#" iconPath="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />
-        <button
-          type="button"
-          onClick={() => setConfirm(true)}
-          className="settings-row w-full text-left flex items-center gap-4 px-4 py-4 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition mb-3"
-        >
-          <span className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-600">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
-            </svg>
-          </span>
-          <p className="text-sm font-semibold text-slate-900">Logout</p>
-        </button>
-      </section>
+          {cert && showCertificates ? (
+            <section className="mt-6">
+              <div className="flex items-baseline justify-between">
+                <h3 className="text-lg font-bold text-slate-900">{cert.title || 'Certificates'}</h3>
+                {showViewCertificates ? (
+                  <Link to="/certificates" className="text-sm font-semibold text-brand-blue hover:underline">View Certificates</Link>
+                ) : null}
+              </div>
+              {cert.sub_title ? <p className="text-sm text-slate-500 mt-1">{cert.sub_title}</p> : null}
+              <div className="flex gap-3 mt-3 overflow-x-auto pb-1">
+                {certificateData.map((c, i) => (
+                  <img
+                    key={c.certificate_uuid || `${c.month}-${c.year}-${i}`}
+                    src={c.certificate_image}
+                    alt=""
+                    className="w-16 h-20 object-contain shrink-0"
+                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                  />
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {/* Selected settings item's sub-options — fetched from /settings
+              with the selected key. Header uses `cardTitle` from the
+              response (e.g. "My Account") with the menuList item title as a
+              fallback. Inline spinner while the request is in flight. */}
+          <section className="mt-6">
+            <h3 className="text-lg font-bold text-slate-900 mb-3">
+              {settingsData?.cardTitle || selectedItem?.title || 'Settings'}
+            </h3>
+            {settingsLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="loader-spinner" aria-hidden="true" />
+              </div>
+            ) : subOptions.length ? (
+              subOptions.map((o) => <SubOptionRow key={o.title || o.url || o.key} item={o} />)
+            ) : (
+              <p className="text-sm text-slate-500">No options for this section yet.</p>
+            )}
+          </section>
+        </div>
+      </div>
 
       {confirmLogout && (
         <div

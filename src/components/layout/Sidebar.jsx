@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const ITEMS = [
@@ -29,33 +30,19 @@ const ITEMS = [
   },
 ];
 
-// Cheap initials derivation — pulls from common user fields if present, else "DJ".
-function deriveInitials(user) {
-  if (!user) return 'DJ';
-  const fn = user.first_name || user.firstName;
-  const ln = user.last_name  || user.lastName;
-  if (fn || ln) {
-    return `${(fn?.[0] || '').toUpperCase()}${(ln?.[0] || '').toUpperCase()}` || 'DJ';
-  }
-  const name = user.name || user.fullname || user.fullName;
-  if (typeof name === 'string' && name.trim()) {
-    const parts = name.trim().split(/\s+/);
-    return ((parts[0]?.[0] || '') + (parts[1]?.[0] || '')).toUpperCase() || 'DJ';
-  }
-  return 'DJ';
-}
-
 export default function Sidebar({ active }) {
-  const { user } = useAuth();
-  const imagelink = user?.imagelink;
-  const initials  = deriveInitials(user);
+  const { logout }                  = useAuth();
+  const navigate                    = useNavigate();
+  const [confirmLogout, setConfirm] = useState(false);
 
-  // If the stored imagelink 404s or fails to load, fall back to initials.
-  const [imgFailed, setImgFailed] = useState(false);
-  useEffect(() => { setImgFailed(false); }, [imagelink]);
-  const showImage = !!imagelink && !imgFailed;
+  function doLogout() {
+    setConfirm(false);
+    logout();
+    navigate('/login', { replace: true });
+  }
 
   return (
+    <>
     <aside className="icon-sidebar fixed top-0 left-0 bottom-0 z-40 flex flex-col py-4">
       <Link to="/dashboard" className="icon-logo" aria-label="Mobilix IdeasCaards">
         <img src={`${import.meta.env.BASE_URL}assets/img/logo.png`} alt="" className="h-8 w-auto" />
@@ -74,24 +61,43 @@ export default function Sidebar({ active }) {
           </Link>
         ))}
       </nav>
-      <Link
-        to="/profile"
-        className={`icon-link icon-avatar mt-auto ml-2${active === 'profile' ? ' is-active' : ''}`}
+      <button
+        type="button"
+        onClick={() => setConfirm(true)}
+        className="icon-link mt-auto text-rose-600 hover:text-rose-700"
+        aria-label="Logout"
       >
-        <span className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-[11px] font-bold text-slate-600 shrink-0 overflow-hidden">
-          {showImage ? (
-            <img
-              src={imagelink}
-              alt=""
-              className="w-full h-full object-cover"
-              onError={() => setImgFailed(true)}
-            />
-          ) : (
-            initials
-          )}
-        </span>
-        <span className="icon-label">Profile</span>
-      </Link>
+        <svg className="w-6 h-6 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 17l5-5-5-5M15 12H3" />
+        </svg>
+        <span className="icon-label">Logout</span>
+      </button>
+
     </aside>
+
+    {/* Render the confirm modal through a portal so the sidebar's hover
+        backdrop-filter doesn't create a containing block that traps it. */}
+    {confirmLogout && createPortal(
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 px-4"
+        onClick={() => setConfirm(false)}
+      >
+        <div
+          className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+        >
+          <h4 className="text-lg font-bold text-slate-900">Sign out?</h4>
+          <p className="mt-2 text-sm text-slate-600">You'll need to log in again to access your account.</p>
+          <div className="mt-5 flex justify-end gap-2">
+            <button type="button" onClick={() => setConfirm(false)} className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100">Cancel</button>
+            <button type="button" onClick={doLogout} className="px-4 py-2 rounded-lg bg-brand-blue text-white text-sm font-semibold hover:opacity-90">Logout</button>
+          </div>
+        </div>
+      </div>,
+      document.body,
+    )}
+    </>
   );
 }

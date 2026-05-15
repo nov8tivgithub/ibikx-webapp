@@ -40,9 +40,15 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  const refreshUser = useCallback((nextUser) => {
-    setAuth({ token, user: nextUser });
-    setUser(nextUser);
+  // Supports both value and functional updates — `refreshUser(prev => ({ ... }))`
+  // is required when multiple concurrent fetches each merge their slice of
+  // data, so they don't clobber each other's keys via stale closures.
+  const refreshUser = useCallback((nextUserOrFn) => {
+    setUser((prev) => {
+      const next = typeof nextUserOrFn === 'function' ? nextUserOrFn(prev) : nextUserOrFn;
+      setAuth({ token, user: next });
+      return next;
+    });
   }, [token]);
 
   const value = useMemo(() => ({
