@@ -56,11 +56,11 @@ export default function MyVideos() {
               key={v.id || v.cardid || templatekey}
               title={v.title || v.name || ''}
               image={v.imageLink || v.image || v.image_path || v.thumbnail}
-              badge={v.is_free === 1 || v.is_free === '1' ? 'FREE' : '★'}
-              badgeClass={v.is_free === 1 || v.is_free === '1' ? 'badge-free' : 'badge-crown'}
+              badge={v.is_free === 1 || v.is_free === '1' ? 'FREE' : 'CROWN'}
+              badgeClass={v.is_free === 1 || v.is_free === '1' ? 'badge-free' : ''}
               videoKey={templatekey}
               isFavourite={isFav}
-              to={`/video-details?templatekey=${encodeURIComponent(templatekey || '')}&categorykey=${encodeURIComponent(data?.categorykey || 'my_videos')}&type=videos`}
+              to={`/video-details/${encodeURIComponent(templatekey || '')}?type=videos`}
             />
           );
         })}

@@ -9,11 +9,11 @@ import { notify } from '../../utils/notify';
 
 // SubOption row used in the right-pane detail view. Items from the /settings
 // response carry: { title, iconUrl, moduleName, url, menuColor }.
-//   moduleName "webPage" → open `url` in a new tab.
+//   moduleName "webPage" → load `url` into the in-page iframe (no new tab).
 //   moduleName "settings" / others starting with "/" → in-app Link.
-// The card's background uses menuColor when supplied (Delete Account ships a
-// soft amber tint via "#ffeaa7" in the captured response, for example).
-function SubOptionRow({ item }) {
+// `onOpenWebview` is invoked for webPage rows so the parent can swap the
+// right-pane view to an iframe.
+function SubOptionRow({ item, onOpenWebview }) {
   const mod    = (item.moduleName || '').toLowerCase();
   const target = item.url || item.key || '';
   const isHttp = /^https?:/i.test(target);
@@ -40,21 +40,35 @@ function SubOptionRow({ item }) {
       </svg>
     </>
   );
-  const cls = 'settings-row flex items-center gap-4 px-4 py-4 rounded-2xl border border-slate-200 hover:border-brand-blue/40 transition mb-3';
+  const cls = 'settings-row flex items-center gap-4 px-4 py-4 rounded-2xl border border-slate-200 hover:border-brand-blue/40 transition mb-3 w-full text-left';
   const style = { background: bg };
 
-  if (mod === 'webpage' || isHttp) {
-    return <a href={target || '#'} target="_blank" rel="noopener noreferrer" className={cls} style={style}>{inner}</a>;
+  if (mod === 'webpage' || (isHttp && !target.startsWith('/'))) {
+    return (
+      <button
+        type="button"
+        onClick={() => onOpenWebview?.({ title: item.title, url: target })}
+        className={cls}
+        style={style}
+      >
+        {inner}
+      </button>
+    );
   }
   // In-app fallback. Defaults to '#' if no destination supplied.
   return <Link to={target || '#'} className={cls} style={style}>{inner}</Link>;
 }
 
 export default function Profile() {
-  const [copied, setCopied]         = useState(false);
-  const [confirmLogout, setConfirm] = useState(false);
+  const [copied, setCopied]           = useState(false);
+  const [confirmLogout, setConfirm]   = useState(false);
   const [selectedKey, setSelectedKey] = useState('myaccount');
-  const navigate                    = useNavigate();
+  // `webview` holds the currently-displayed sub-option iframe info:
+  //   { title, url }   (e.g. clicking "My Profile" → backend editprofile page)
+  // null means the right pane shows the normal profile / sub-options view.
+  const [webview, setWebview]         = useState(null);
+  const [webviewLoaded, setWebviewLoaded] = useState(false);
+  const navigate                      = useNavigate();
   const { user, logout, refreshUser } = useAuth();
 
   const { data, loading, error } = useApiOnMount(getProfileService);
@@ -121,8 +135,12 @@ export default function Profile() {
   useEffect(() => { if (settingsError) notify.error(settingsError); }, [settingsError]);
   useEffect(() => {
     if (!selectedKey) return;
+    // Only fetch /settings for actual settings-module items. webPage items
+    // (whose key is a full URL) shouldn't trigger a /settings call.
+    const sel = settingsItems.find((i) => i.key === selectedKey);
+    if (sel && (sel.moduleName || '').toLowerCase() !== 'settings') return;
     runSettings(selectedKey);
-  }, [selectedKey, runSettings]);
+  }, [selectedKey, runSettings, settingsItems]);
 
   // The /settings response uses `subList` or `items` or `menuList` depending
   // on the endpoint version — accept any of them.
@@ -156,17 +174,13 @@ export default function Profile() {
     navigate('/login', { replace: true });
   }
 
-  // Handle a click on a sidebar settings item. For "settings" items we just
-  // change the right-pane selection; the other module types still perform
-  // their original side-effect (open URL, share, logout).
+  // Handle a click on a sidebar item. settings + webPage both select the
+  // item; webPage also loads its url into the inline iframe immediately.
+  // Share / logout still perform their side-effect without selecting.
   function onSidebarItem(item) {
     const mod = (item.moduleName || '').toLowerCase();
     if (mod === 'logout' || /logout|signout|sign\s*out/i.test(item.title || '')) {
       setConfirm(true);
-      return;
-    }
-    if (mod === 'webpage') {
-      window.open(item.key, '_blank', 'noopener,noreferrer');
       return;
     }
     if (mod === 'sharetext') {
@@ -178,8 +192,32 @@ export default function Profile() {
       );
       return;
     }
-    // settings: switch the right pane.
+    // settings or webPage → mark as selected; webPage also opens its iframe.
     setSelectedKey(item.key);
+    if (mod === 'webpage') {
+      setWebview({ title: item.title || '', url: item.url || item.key || '' });
+      setWebviewLoaded(false);
+    } else {
+      setWebview(null);
+    }
+  }
+
+  // Open a sub-option's webview in-place instead of a new tab.
+  function openWebview(entry) {
+    setWebview(entry);
+    setWebviewLoaded(false);
+  }
+  // Closing the webview. If the currently-selected item is a sidebar webPage
+  // (e.g. Card Subscription Plans), the selectedKey holds a URL — falling
+  // back to that view would be empty, so snap to My Account instead. If the
+  // webview was opened from a sub-option, the selectedKey already points at
+  // its parent settings item, so we just hide the iframe.
+  function closeWebview() {
+    setWebview(null);
+    const sel = settingsItems.find((i) => i.key === selectedKey);
+    if (sel && (sel.moduleName || '').toLowerCase() === 'webpage') {
+      setSelectedKey('myaccount');
+    }
   }
 
   const selectedItem = settingsItems.find((i) => i.key === selectedKey);
@@ -197,7 +235,8 @@ export default function Profile() {
             {settingsItems.map((item) => {
               const mod      = (item.moduleName || '').toLowerCase();
               const isLogout = mod === 'logout' || /logout|signout|sign\s*out/i.test(item.title || '');
-              const isActive = item.key === selectedKey && mod === 'settings';
+              // Selectable rows: settings + webPage. Both highlight when active.
+              const isActive = item.key === selectedKey && (mod === 'settings' || mod === 'webpage');
               return (
                 <button
                   key={item.title}
@@ -235,9 +274,60 @@ export default function Profile() {
           </nav>
         </aside>
 
-        {/* RIGHT — profile header, certificates, then the selected item's
-            sub-options (e.g. "My Account" → Profile / Change Password / …). */}
+        {/* RIGHT — either the profile header + certificates + sub-options,
+            OR an in-place webview with a back button when a webPage row is
+            clicked. */}
         <div className="min-w-0">
+        {webview ? (
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <button
+                type="button"
+                onClick={closeWebview}
+                aria-label="Back"
+                className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-700 hover:border-brand-blue/40 hover:text-brand-blue transition"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
+                </svg>
+              </button>
+              <h3 className="text-lg font-bold text-slate-900 truncate flex-1">{webview.title || 'Settings'}</h3>
+            </div>
+            <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-white" style={{ height: '70vh' }}>
+              {!webviewLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center bg-white">
+                  <div className="loader-spinner" aria-hidden="true" />
+                </div>
+              )}
+              <iframe
+                src={webview.url}
+                title={webview.title || 'Settings'}
+                loading="lazy"
+                referrerPolicy="no-referrer"
+                allow="clipboard-write"
+                onLoad={() => setWebviewLoaded(true)}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: '100%',
+                  border: 0,
+                  opacity: webviewLoaded ? 1 : 0,
+                  transition: 'opacity 200ms ease',
+                }}
+              />
+            </div>
+          </div>
+        ) : settingsLoading ? (
+          // Right-pane loader during a settings switch (and on first load
+          // before the sub-options arrive). Replaces the whole right column
+          // with a centred spinner so the transition reads as intentional.
+          <div className="flex items-center justify-center py-24">
+            <div className="loader-spinner" aria-hidden="true" />
+          </div>
+        ) : (
+        <>
+          {selectedKey === 'myaccount' ? (
+          <>
           <section className="flex flex-col md:flex-row md:items-center gap-5 pb-5 border-b border-slate-100">
             <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-full ring-[3px] ring-brand-blue overflow-hidden bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-2xl shrink-0">
               {avatarUrl
@@ -296,6 +386,8 @@ export default function Profile() {
               </div>
             </section>
           ) : null}
+          </>
+          ) : null}
 
           {/* Selected settings item's sub-options — fetched from /settings
               with the selected key. Header uses `cardTitle` from the
@@ -305,16 +397,20 @@ export default function Profile() {
             <h3 className="text-lg font-bold text-slate-900 mb-3">
               {settingsData?.cardTitle || selectedItem?.title || 'Settings'}
             </h3>
-            {settingsLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <div className="loader-spinner" aria-hidden="true" />
-              </div>
-            ) : subOptions.length ? (
-              subOptions.map((o) => <SubOptionRow key={o.title || o.url || o.key} item={o} />)
+            {subOptions.length ? (
+              subOptions.map((o) => (
+                <SubOptionRow
+                  key={o.title || o.url || o.key}
+                  item={o}
+                  onOpenWebview={openWebview}
+                />
+              ))
             ) : (
               <p className="text-sm text-slate-500">No options for this section yet.</p>
             )}
           </section>
+        </>
+        )}
         </div>
       </div>
 

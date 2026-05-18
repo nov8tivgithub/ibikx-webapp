@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
+import NoRecords from '../../components/common/NoRecords';
 import VideoThumbnail from '../../components/catalog/VideoThumbnail';
 import CardThumbnail from '../../components/catalog/CardThumbnail';
 import { getCardListingService } from '../../services/card.service';
@@ -14,6 +15,9 @@ export default function Subcategory() {
   const cat = decodeURIComponent(rawCat || '');
   const sub = decodeURIComponent(rawSub || '');
   const leafKey = sub || cat;
+  // ?favourite=1 propagates favourites context from the Favourites page.
+  const [search] = useSearchParams();
+  const favourite = search.get('favourite') === '1' ? '1' : '0';
 
   const [tab, setTab]                 = useState('videos');
   const [data, setData]               = useState(null);   // latest response envelope
@@ -28,7 +32,7 @@ export default function Subcategory() {
   // Latest filters so a stale in-flight request can't pollute fresh state.
   const reqIdRef    = useRef(0);
 
-  // Reset + load the first page whenever tab or leafKey changes.
+  // Reset + load the first page whenever tab, leafKey, or favourite change.
   useEffect(() => {
     if (!leafKey) return;
     abortRef.current?.abort();
@@ -43,7 +47,7 @@ export default function Subcategory() {
     setData(null);
 
     getCardListingService(
-      { categorykey: leafKey, favourite: '0', type: tab, last_id: '' },
+      { categorykey: leafKey, favourite, type: tab, last_id: '' },
       controller.signal,
     ).then((res) => {
       if (reqId !== reqIdRef.current) return; // a newer request superseded us
@@ -60,7 +64,7 @@ export default function Subcategory() {
     });
 
     return () => controller.abort();
-  }, [tab, leafKey]);
+  }, [tab, leafKey, favourite]);
 
   // Next-page fetch, appending into items.
   const loadMore = useCallback(() => {
@@ -68,7 +72,7 @@ export default function Subcategory() {
     const reqId = reqIdRef.current; // capture; if it changes, throw out the result
     setLoadingMore(true);
     getCardListingService(
-      { categorykey: leafKey, favourite: '0', type: tab, last_id: lastId },
+      { categorykey: leafKey, favourite, type: tab, last_id: lastId },
     ).then((res) => {
       if (reqId !== reqIdRef.current) return;
       if (res?.status === 1 || res?.status === '1') {
@@ -81,7 +85,7 @@ export default function Subcategory() {
       }
       setLoadingMore(false);
     });
-  }, [hasMore, lastId, leafKey, loading, loadingMore, tab]);
+  }, [hasMore, lastId, leafKey, loading, loadingMore, tab, favourite]);
 
   // Watch the sentinel — when it enters the viewport, request the next page.
   useEffect(() => {
@@ -108,8 +112,12 @@ export default function Subcategory() {
     { title: 'Cards',  type: 'cards'  },
   ];
 
+  // Keep the Favourites sidebar item highlighted when we arrived via the
+  // ?favourite=1 chain from the Favourites page.
+  const sidebarActive = favourite === '1' ? 'favourites' : 'home';
+
   return (
-    <Layout active="home" title={title} back loading={loading && !data}>
+    <Layout active={sidebarActive} title={title} back loading={loading && !data}>
       {showTabs ? (
         <div className="border-b border-slate-200 flex gap-6 mb-6">
           {tabs.map((t) => (
@@ -126,24 +134,27 @@ export default function Subcategory() {
         </div>
       ) : null}
 
-      {!loading && !items.length ? (
-        <p className="text-sm text-slate-400">No {tab} available in this category yet.</p>
-      ) : null}
+      {!loading && !items.length ? <NoRecords /> : null}
 
       <div className="tile-grid">
         {items.map((it) => {
           const isVideo     = tab === 'videos' || it.is_video === '1' || it.is_video === 1 || it.type === 'video';
           const Comp        = isVideo ? VideoThumbnail : CardThumbnail;
           const templatekey = it.templatekey || it.cardkey || it.id;
-          const detailHref  = `${isVideo ? '/video-details' : '/card-details'}?templatekey=${encodeURIComponent(templatekey || '')}&categorykey=${encodeURIComponent(leafKey)}&type=${encodeURIComponent(tab)}`;
+          const detailHref  = `${isVideo ? '/video-details' : '/card-details'}/${encodeURIComponent(templatekey || '')}?type=${encodeURIComponent(tab)}`;
           const isFav       = it.favourite === '1' || it.favourite === 1 || !!it.is_favourite;
+          const isFree = it.is_free === 1 || it.is_free === '1';
+          // Badges are video-only. Cards (is_video !== "1") never show one.
+          // 'FREE' → white pill, 'CROWN' → gold crown SVG (no pill).
+          const badge      = isVideo ? (isFree ? 'FREE' : 'CROWN') : '';
+          const badgeClass = badge === 'FREE' ? 'badge-free' : '';
           return (
             <Comp
               key={it.id || it.cardid || templatekey || it.title}
               title={it.title || it.name || ''}
               image={it.imageLink || it.image || it.image_path || it.thumbnail}
-              badge={it.is_free === 1 || it.is_free === '1' ? 'FREE' : '★'}
-              badgeClass={it.is_free === 1 || it.is_free === '1' ? 'badge-free' : 'badge-crown'}
+              badge={badge}
+              badgeClass={badgeClass}
               {...(isVideo ? { videoKey: templatekey } : { cardKey: templatekey })}
               isFavourite={isFav}
               to={detailHref}

@@ -2,7 +2,7 @@
 // request.js to mirror the reference (single function = single source of truth).
 
 import axios from 'axios';
-import { baseUrl } from '../config/env';
+import { baseUrl } from '../config/constants';
 
 export const apiClient = axios.create({
   baseURL: baseUrl,

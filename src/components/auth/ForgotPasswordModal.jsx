@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { webviewUrl } from '../../config/env';
+import { webviewUrl } from '../../config/constants';
 
 const DEFAULT_SUCCESS = 'Your password reset successfully..';
 

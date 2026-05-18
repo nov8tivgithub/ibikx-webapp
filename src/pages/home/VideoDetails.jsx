@@ -69,7 +69,7 @@ export default function VideoDetails() {
     if (!templatekey) return;
     const next = !fav;
     setFav(next);
-    markAsFavouriteService({ templatekey, cardkey: data?.cardkey, value: next ? '1' : '0', type });
+    markAsFavouriteService({ templatekey, favourite: next ? '1' : '0', type });
   }
 
   const title       = data?.title       || 'Video details';

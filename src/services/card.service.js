@@ -15,6 +15,14 @@ export const getCardListingService = (
 ) =>
   MakeAxiosRequest('post', '/cardlisting', { categorykey, favourite, type, last_id }, signal);
 
+// /myfavourites — user's saved cards/videos. `type` filters by tab
+// ("videos" | "cards"); pass an empty string for all.
+export const getFavouritesService = (
+  { type = '' } = {},
+  signal,
+) =>
+  MakeAxiosRequest('post', '/myfavourites', { type }, signal);
+
 // Back-compat shim — older code paths import getCardListService. Routes
 // through the same /cardlisting endpoint with the new payload shape.
 export const getCardListService = getCardListingService;
@@ -32,15 +40,26 @@ export const getCardDetailsService = (
     signal,
   );
 
+// /cardview — full details for the card/video shown on the details page.
+// Same endpoint serves both modes (`type` switches the response). Replaces
+// /carddetails for the in-app card-details / video-details views.
+export const getCardViewService = (
+  { cardkey, languageid = 0, type = 'cards' } = {},
+  signal,
+) =>
+  MakeAxiosRequest('post', '/cardview', { cardkey, languageid, type }, signal);
+
 // /personalizecard — renders the card with the user's profile stamped in.
+// Live payload: { templatekey, languageid, favourite, type }. `favourite`
+// is the current favourite state of the source card ("0" or "1").
 export const personalizeCardService = (
-  { templatekey, categorykey = '', languageid = 0, type = 'videos' } = {},
+  { templatekey, languageid = 0, favourite = '0', type = 'videos' } = {},
   signal,
 ) =>
   MakeAxiosRequest(
     'post',
     '/personalizecard',
-    { templatekey, categorykey, languageid, type },
+    { templatekey, languageid, favourite, type },
     signal,
   );
 
@@ -58,15 +77,16 @@ export const shareCardService = (
 ) =>
   MakeAxiosRequest('post', '/sharecard', { cardkey, languageid, type, channel }, signal);
 
-// /markasfavourite — value "1" to favourite, "0" to unfavourite. Backend
-// generally keys by templatekey; pass whichever id the listing supplies.
+// /markasfavourite — favourite "1" to favourite, "0" to unfavourite. The
+// backend keys by templatekey + type. Older call sites passed `value` —
+// accept either and normalise.
 export const markAsFavouriteService = (
-  { templatekey, cardkey, value = '1', type = 'videos' } = {},
+  { templatekey, favourite, value, type = 'videos' } = {},
   signal,
 ) =>
   MakeAxiosRequest(
     'post',
     '/markasfavourite',
-    { templatekey, cardkey, value, type },
+    { templatekey, favourite: favourite ?? value ?? '1', type },
     signal,
   );

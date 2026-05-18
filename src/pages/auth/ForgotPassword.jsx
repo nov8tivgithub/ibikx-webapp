@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { webviewUrl } from '../../config/env';
+import { webviewUrl } from '../../config/constants';
 
 // When the hosted webview finishes its flow, it navigates to a URL with
 // `?success=1` (and typically a `message` query param / DOM message).

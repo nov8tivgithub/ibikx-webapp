@@ -1,6 +1,6 @@
 import CryptoJS from 'crypto-js';
 import { MakeAxiosRequest } from '../api/request';
-import { deviceSecret } from '../config/env';
+import { deviceSecret } from '../config/constants';
 
 // Backend computes the same MD5 server-side and compares — see
 // server's php login handler:

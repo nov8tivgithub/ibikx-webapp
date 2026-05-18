@@ -15,7 +15,6 @@ import Category from './pages/home/Category';
 import Subcategory from './pages/home/Subcategory';
 import FreeVideos from './pages/home/FreeVideos';
 import MyVideos from './pages/home/MyVideos';
-import VideoDetails from './pages/home/VideoDetails';
 import CardDetails from './pages/home/CardDetails';
 import PersonalisedCard from './pages/home/PersonalisedCard';
 import PersonalisedVideo from './pages/home/PersonalisedVideo';
@@ -66,8 +65,14 @@ export default function App() {
         <Route path="/category/:catKey/subcategory/:subKey" element={<Subcategory />} />
         <Route path="/free-videos" element={<FreeVideos />} />
         <Route path="/my-videos" element={<MyVideos />} />
-        <Route path="/video-details" element={<VideoDetails />} />
-        <Route path="/card-details" element={<CardDetails />} />
+        {/* /cardview-backed detail page — same component serves both video
+            and card modes via the cardkey path param + ?type query. */}
+        <Route path="/video-details/:cardkey" element={<CardDetails />} />
+        <Route path="/card-details/:cardkey"  element={<CardDetails />} />
+        {/* Back-compat: bare paths fall through to the same component (it
+            will show empty until the user picks a card again). */}
+        <Route path="/video-details" element={<CardDetails />} />
+        <Route path="/card-details"  element={<CardDetails />} />
         <Route path="/personalised-card" element={<PersonalisedCard />} />
         <Route path="/personalised-video" element={<PersonalisedVideo />} />
 

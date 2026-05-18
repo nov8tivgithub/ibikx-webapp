@@ -14,7 +14,7 @@ export default function VideoThumbnail({
     const next = !fav;
     setFav(next);
     if (videoKey) {
-      markAsFavouriteService({ templatekey: videoKey, value: next ? '1' : '0', type: 'videos' });
+      markAsFavouriteService({ templatekey: videoKey, favourite: next ? '1' : '0', type: 'videos' });
     }
   }
 
@@ -30,11 +30,17 @@ export default function VideoThumbnail({
         onError={(e) => { e.currentTarget.style.display = 'none'; }}
       />
       <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-black/0" />
-      {badge && (
-        <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${badgeClass}`}>
-          {badge}
+      {badge === 'FREE' ? (
+        <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${badgeClass || 'badge-free'}`}>
+          FREE
         </span>
-      )}
+      ) : badge === 'CROWN' ? (
+        <span className="absolute top-2 left-2 w-7 h-7 rounded-full bg-white shadow-soft flex items-center justify-center text-brand-gold" aria-label="Premium">
+          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M5 16 2 7l5.5 4L12 4l4.5 7L22 7l-3 9H5zm-1 4h16v-2H4v2z" />
+          </svg>
+        </span>
+      ) : null}
       <button
         type="button"
         className={`absolute top-2 right-2 w-8 h-8 rounded-full bg-black/40 backdrop-blur flex items-center justify-center text-white${fav ? ' is-active' : ''}`}

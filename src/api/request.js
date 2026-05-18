@@ -24,7 +24,7 @@
 //  - `signal` flows through to axios so callers can abort via AbortController.
 
 import { apiClient } from './client';
-import { apiKey } from '../config/env';
+import { apiKey } from '../config/constants';
 import { getToken, clearAuth } from '../utils/token';
 import { notify } from '../utils/notify';
 

@@ -35,7 +35,7 @@ export default function FreeVideos() {
               badgeClass="badge-free"
               videoKey={templatekey}
               isFavourite={!!v.is_favourite}
-              to={`/video-details?templatekey=${encodeURIComponent(templatekey || '')}&categorykey=${encodeURIComponent(v.categorykey || '')}&type=videos`}
+              to={`/video-details/${encodeURIComponent(templatekey || '')}?type=videos`}
             />
           );
         })}
