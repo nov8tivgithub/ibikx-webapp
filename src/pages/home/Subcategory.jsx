@@ -141,7 +141,7 @@ export default function Subcategory() {
           const isVideo     = tab === 'videos' || it.is_video === '1' || it.is_video === 1 || it.type === 'video';
           const Comp        = isVideo ? VideoThumbnail : CardThumbnail;
           const templatekey = it.templatekey || it.cardkey || it.id;
-          const detailHref  = `${isVideo ? '/video-details' : '/card-details'}/${encodeURIComponent(templatekey || '')}?type=${encodeURIComponent(tab)}`;
+          const detailHref  = `${isVideo ? '/video-details' : '/card-details'}/${encodeURIComponent(templatekey || '')}?type=${encodeURIComponent(tab)}&categorykey=${encodeURIComponent(leafKey)}`;
           const isFav       = it.favourite === '1' || it.favourite === 1 || !!it.is_favourite;
           const isFree = it.is_free === 1 || it.is_free === '1';
           // Badges are video-only. Cards (is_video !== "1") never show one.

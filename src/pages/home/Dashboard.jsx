@@ -8,6 +8,7 @@ import CategoryTile from '../../components/catalog/CategoryTile';
 import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../context/AuthContext';
 import { getDashboardService } from '../../services/catalog.service';
+import { getCardViewService } from '../../services/card.service';
 import { subLink } from '../../data/categories';
 import { notify } from '../../utils/notify';
 
@@ -26,8 +27,16 @@ function FeaturedSlide({ card, type, isActive }) {
   const video       = card.video_path || card.video || card.videoLink;
   const isVideo     = !!video && (type === 'videos' || card.is_video === '1' || card.is_video === 1 || card.type === 'video');
   const cardkey     = card.templatekey || card.cardkey || card.key || card.videokey || card.id;
-  const path        = type === 'videos' ? '/video-details' : '/card-details';
-  const to          = `${path}/${encodeURIComponent(cardkey || '')}?type=${encodeURIComponent(type)}`;
+  const categorykey = card.categorykey || '';
+  // Carousel cards always open the personalised preview — they're the cards
+  // the user has already personalised once.
+  const path        = type === 'videos' ? '/personalised-video' : '/personalised-card';
+  const to          = `${path}/${encodeURIComponent(cardkey || '')}?type=${encodeURIComponent(type)}${categorykey ? `&categorykey=${encodeURIComponent(categorykey)}` : ''}`;
+  // Fire /cardview tracker on click — fire-and-forget, the navigation
+  // happens regardless.
+  function onCardClick() {
+    getCardViewService({ cardkey: card.cardkey || cardkey, languageid: 0, type });
+  }
 
   const videoRef = useRef(null);
   // Start unmuted (user just logged in, so the most recent gesture grants
@@ -61,7 +70,7 @@ function FeaturedSlide({ card, type, isActive }) {
   }
 
   return (
-    <Link to={to} className="block w-full h-full">
+    <Link to={to} onClick={onCardClick} className="block w-full h-full">
       <div className="cover-slide-inner">
         {showVideo ? (
           <video

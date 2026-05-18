@@ -73,6 +73,10 @@ export default function App() {
             will show empty until the user picks a card again). */}
         <Route path="/video-details" element={<CardDetails />} />
         <Route path="/card-details"  element={<CardDetails />} />
+        <Route path="/personalised-card/:cardkey" element={<PersonalisedCard />} />
+        <Route path="/personalised-video/:cardkey" element={<PersonalisedVideo />} />
+        {/* Back-compat: bare paths still work when the previous page passes
+            data via location.state (e.g. from the Personalise button click). */}
         <Route path="/personalised-card" element={<PersonalisedCard />} />
         <Route path="/personalised-video" element={<PersonalisedVideo />} />
 

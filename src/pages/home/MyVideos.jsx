@@ -60,7 +60,7 @@ export default function MyVideos() {
               badgeClass={v.is_free === 1 || v.is_free === '1' ? 'badge-free' : ''}
               videoKey={templatekey}
               isFavourite={isFav}
-              to={`/video-details/${encodeURIComponent(templatekey || '')}?type=videos`}
+              to={`/video-details/${encodeURIComponent(templatekey || '')}?type=videos&categorykey=${encodeURIComponent(data?.categorykey || 'my_videos')}`}
             />
           );
         })}

@@ -40,9 +40,10 @@ export const getCardDetailsService = (
     signal,
   );
 
-// /cardview — full details for the card/video shown on the details page.
-// Same endpoint serves both modes (`type` switches the response). Replaces
-// /carddetails for the in-app card-details / video-details views.
+// /cardview — fire-and-forget tracker called when a user re-opens a card
+// from the dashboard carousel that was personalised on a previous visit.
+// (Distinct from /carddetails which fetches the live preview for the
+// details page.) Failures are intentionally swallowed.
 export const getCardViewService = (
   { cardkey, languageid = 0, type = 'cards' } = {},
   signal,
@@ -70,12 +71,15 @@ export const recordCardViewService = (
 ) =>
   MakeAxiosRequest('post', '/cardview', { cardkey, languageid, type }, signal);
 
-// /sharecard — fire-and-forget share tracker.
+// /sharecard — fire-and-forget share tracker. `eventlogtypeid` selects the
+// channel server-side: the live backend uses share_event_logtypeid for the
+// generic share button and whatspp_event_logtypeid for WhatsApp (both come
+// from /carddetails → data.action_buttons).
 export const shareCardService = (
-  { cardkey, languageid = 0, type = 'videos', channel = '' } = {},
+  { templatekey, eventlogtypeid, type = 'videos' } = {},
   signal,
 ) =>
-  MakeAxiosRequest('post', '/sharecard', { cardkey, languageid, type, channel }, signal);
+  MakeAxiosRequest('post', '/sharecard', { templatekey, eventlogtypeid, type }, signal);
 
 // /markasfavourite — favourite "1" to favourite, "0" to unfavourite. The
 // backend keys by templatekey + type. Older call sites passed `value` —
