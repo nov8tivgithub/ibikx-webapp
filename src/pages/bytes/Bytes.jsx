@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
 import ByteListItem from '../../components/bytes/ByteListItem';
+import PopularBytesSlider from '../../components/bytes/PopularBytesSlider';
 import { useApiOnMount } from '../../hooks/useApiOnMount';
 import { getBytesListingService } from '../../services/bytes.service';
 import { notify } from '../../utils/notify';
@@ -21,7 +22,15 @@ export default function Bytes() {
         <p className="text-sm text-slate-400">No bytes available right now.</p>
       ) : null}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-        {items.map((it) => {
+        {items.map((it, idx) => {
+          if (it.type === 'popular_bytes') {
+            return (
+              <PopularBytesSlider
+                key={`popular-${idx}`}
+                items={Array.isArray(it.bytes) ? it.bytes : []}
+              />
+            );
+          }
           const bytekey = it.key || it.bytekey || it.id;
           return (
             <ByteListItem

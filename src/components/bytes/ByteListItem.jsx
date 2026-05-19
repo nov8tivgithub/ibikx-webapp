@@ -9,16 +9,16 @@ export default function ByteListItem({
     : excerpt;
   return (
     <Link to={to} className="block bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-soft h-full">
-      <div className="aspect-[16/9] bg-slate-200">
-        {image ? (
+      {image ? (
+        <div className="aspect-[16/9] bg-slate-200">
           <img
             src={image}
             alt={title}
             className="w-full h-full object-cover"
             onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
-        ) : null}
-      </div>
+        </div>
+      ) : null}
       <div className="p-4">
         <div className="flex items-center gap-3 mb-2">
           <span className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm font-bold overflow-hidden">
