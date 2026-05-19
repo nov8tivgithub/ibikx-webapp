@@ -165,29 +165,54 @@ export default function PersonalisedVideo() {
       notify.error('Sharing is not supported in this browser.');
     }
   }
-  // WhatsApp share — wa.me URLs can only carry text, so to actually attach
-  // the video file we route through the native share sheet (Web Share L2).
-  // On mobile this surfaces WhatsApp prominently so the user lands in WA
-  // with the file pre-attached. On browsers without file sharing support
-  // (desktop Chromium) we fall back to the wa.me text link.
+  // WhatsApp share — wa.me URLs can only carry text, so to attach the
+  // actual video we go three layers deep:
+  //   1. Try Web Share Level 2 with `files` — best path on mobile + modern
+  //      desktop Chromium. The system sheet surfaces WhatsApp directly.
+  //   2. If file sharing isn't supported, auto-download the .mp4 and open
+  //      WhatsApp Web so the user can drag-attach the file we just saved.
+  //   3. Only when the asset can't be fetched at all (CORS / network) do
+  //      we fall back to the legacy wa.me text link.
   async function onShareWhatsapp() {
     if (!isShareable) { notify.error(shareErrMsg); return; }
     if (templatekey) shareCardService({ templatekey, eventlogtypeid: whatsappLogId, type });
+
+    let blob; let filename; let mime;
     try {
-      const res  = await fetch(videoUrl);
-      const blob = await res.blob();
+      const res = await fetch(videoUrl);
+      if (!res.ok) throw new Error('fetch_failed');
+      blob = await res.blob();
       const ext  = (videoUrl.split('?')[0].split('.').pop() || 'mp4').toLowerCase();
-      const mime = blob.type || 'video/mp4';
+      mime       = blob.type || 'video/mp4';
       const base = (breadcrumb || templateName || 'video').replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'video';
-      const file = new File([blob], `${base}.${ext}`, { type: mime });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      filename   = `${base}.${ext}`;
+    } catch {
+      notify.error('Could not load the file (CORS or network). Sharing link instead.');
+      window.open(`https://wa.me/?text=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer');
+      return;
+    }
+
+    const file = new File([blob], filename, { type: mime });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
         await navigator.share({ title: breadcrumb || templateName, files: [file] });
         return;
+      } catch {
+        /* user cancelled or share failed — fall through to download */
       }
-    } catch {
-      /* fall through to wa.me text link */
     }
-    window.open(`https://wa.me/?text=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer');
+
+    // Auto-download the file and open WhatsApp Web so the user can drag it in.
+    const objUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = objUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(objUrl), 5000);
+    notify.success('File downloaded. Attach it in WhatsApp.');
+    window.open('https://web.whatsapp.com/', '_blank', 'noopener,noreferrer');
   }
 
   // Re-personalise with the selected language. Same payload as CardDetails.

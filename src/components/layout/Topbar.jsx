@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
@@ -61,6 +62,9 @@ export default function Topbar({ title, back = false }) {
   // Dropdown open/close + outside-click + Escape handling.
   const [open, setOpen]           = useState(false);
   const [confirmLogout, setLogoutConfirm] = useState(false);
+  // Currently-open header webview (e.g. Renew Subscription). null = none.
+  const [webview, setWebview]               = useState(null);
+  const [webviewLoaded, setWebviewLoaded]   = useState(false);
   const wrapRef = useRef(null);
   useEffect(() => {
     if (!open) return;
@@ -83,6 +87,24 @@ export default function Topbar({ title, back = false }) {
     setOpen(false);
     logout();
     navigate('/login', { replace: true });
+  }
+
+  // Close the webview on Escape, same UX as the forgot-password modal.
+  useEffect(() => {
+    if (!webview) return;
+    function onKey(e) { if (e.key === 'Escape') setWebview(null); }
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [webview]);
+
+  // Header menu click — webPage modules open an in-page iframe modal;
+  // anything else keeps the original "open in new tab" anchor behavior.
+  function onHeaderMenuClick(e, item) {
+    const mod = (item.moduleName || '').toLowerCase();
+    if (mod !== 'webpage') return; // let the anchor's default action fire
+    e.preventDefault();
+    setWebview({ title: item.title || '', url: item.url || item.key || '' });
+    setWebviewLoaded(false);
   }
 
   return (
@@ -116,10 +138,11 @@ export default function Topbar({ title, back = false }) {
             {user.headerMenuList.map((m) => (
               <a
                 key={m.title}
-                href={m.key}
+                href={m.url || m.key}
                 target="_blank"
                 rel="noopener noreferrer"
                 title={m.desc || m.title}
+                onClick={(e) => onHeaderMenuClick(e, m)}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-slate-800 hover:shadow-soft transition border border-slate-200/70"
                 style={{ backgroundColor: m.menuColor || '#ffffff' }}
               >
@@ -227,6 +250,59 @@ export default function Topbar({ title, back = false }) {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {webview ? createPortal(
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/55 backdrop-blur-sm px-4"
+          onClick={() => setWebview(null)}
+        >
+          <div
+            className="w-full max-w-4xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={webview.title || 'Webview'}
+          >
+            <header className="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+              <h4 className="text-base font-bold text-slate-900 truncate">{webview.title || 'Webview'}</h4>
+              <button
+                type="button"
+                onClick={() => setWebview(null)}
+                aria-label="Close"
+                className="p-1 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 6l12 12M6 18L18 6" />
+                </svg>
+              </button>
+            </header>
+            <div className="relative bg-white" style={{ height: 'min(78vh, 44rem)' }}>
+              {!webviewLoaded ? (
+                <div className="absolute inset-0 flex items-center justify-center bg-white">
+                  <div className="loader-spinner" aria-hidden="true" />
+                </div>
+              ) : null}
+              <iframe
+                src={webview.url}
+                title={webview.title || 'Webview'}
+                referrerPolicy="origin"
+                allow="payment *; clipboard-read *; clipboard-write *"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
+                onLoad={() => setWebviewLoaded(true)}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: '100%',
+                  border: 0,
+                  opacity: webviewLoaded ? 1 : 0,
+                  transition: 'opacity 200ms ease',
+                }}
+              />
+            </div>
+          </div>
+        </div>,
+        document.body,
       ) : null}
     </header>
   );
