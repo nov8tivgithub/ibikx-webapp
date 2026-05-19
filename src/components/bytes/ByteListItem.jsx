@@ -4,6 +4,9 @@ export default function ByteListItem({
   title, image, time, views, shares, excerpt, sourceLogo, sourceName,
   to = '/byte-details',
 }) {
+  const trimmedExcerpt = typeof excerpt === 'string' && excerpt.length > 157
+    ? `${excerpt.slice(0, 157)}...`
+    : excerpt;
   return (
     <Link to={to} className="block bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-soft h-full">
       <div className="aspect-[16/9] bg-slate-200">
@@ -41,7 +44,7 @@ export default function ByteListItem({
           </span>
         </div>
         <h3 className="text-base font-semibold text-slate-900 leading-snug line-clamp-2">{title}</h3>
-        <p className="text-sm text-slate-600 mt-1 line-clamp-2 min-h-[2.5rem] leading-tight">{excerpt}</p>
+        <p className="text-sm text-slate-600 mt-1 min-h-[2.5rem] leading-tight">{trimmedExcerpt}</p>
       </div>
     </Link>
   );
