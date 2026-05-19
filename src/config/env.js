@@ -19,6 +19,10 @@ export const deviceSecret  = env.VITE_DEVICE_SECRET || '';
 // Should end with a trailing slash so pages can append the route name.
 export const webviewUrl    = env.VITE_WEBVIEW_URL || '';
 
+// Full URL of the hosted registration page embedded by /signup. Override per
+// environment with VITE_REGISTRATION_URL in .env.
+export const registrationUrl = env.VITE_REGISTRATION_URL || '';
+
 if (import.meta.env.DEV && !baseUrl) {
   // eslint-disable-next-line no-console
   console.warn('[env] VITE_API_URL is not set. API calls will fail until you create a .env file (see .env.example).');

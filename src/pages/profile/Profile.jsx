@@ -302,9 +302,19 @@ export default function Profile() {
               <iframe
                 src={webview.url}
                 title={webview.title || 'Settings'}
-                loading="lazy"
-                referrerPolicy="no-referrer"
-                allow="clipboard-write"
+                // referrerPolicy intentionally NOT set to no-referrer — some
+                // hosted pages (notably the Razorpay payment webview) check
+                // the Referer header before allowing the request and bounce
+                // back to the registration page when it's stripped.
+                referrerPolicy="origin"
+                // `payment` is required for Razorpay's checkout overlay to
+                // initialise (Payment Request API). `clipboard-*` keeps the
+                // copy-to-clipboard helpers working.
+                allow="payment *; clipboard-read *; clipboard-write *"
+                // sandbox flags spelled out so popups + form submission work
+                // (Razorpay opens its 3-D Secure flow in a popup, and the
+                // checkout form posts back to its own origin).
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation-by-user-activation"
                 onLoad={() => setWebviewLoaded(true)}
                 style={{
                   display: 'block',

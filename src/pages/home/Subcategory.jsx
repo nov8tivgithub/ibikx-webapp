@@ -99,9 +99,13 @@ export default function Subcategory() {
     return () => obs.disconnect();
   }, [hasMore, loadMore]);
 
-  // /cardlisting returns the page title in `data.category`.
+  // /cardlisting returns the page title in `data.category`. No default
+  // fallback — the header stays empty until the response lands rather than
+  // flashing a placeholder like "Subcategory" or a stray "> name".
   const title = data?.category
-    || (data?.subcategoryname ? `${data.categoryname || ''} > ${data.subcategoryname}` : 'Subcategory');
+    || (data?.subcategoryname
+          ? (data.categoryname ? `${data.categoryname} > ${data.subcategoryname}` : data.subcategoryname)
+          : '');
 
   // Tab strip is gated solely on `isShowtypeTab`. When the backend says to
   // show tabs but doesn't supply any, fall back to the default Videos / Cards.

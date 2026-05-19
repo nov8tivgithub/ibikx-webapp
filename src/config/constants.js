@@ -2,12 +2,12 @@
 // can import everything they need (env-backed values + static literals) from
 // one place — `import { ... } from '../config/constants'`.
 
-import { apiKey, baseUrl, deviceSecret, webviewUrl } from './env';
+import { apiKey, baseUrl, deviceSecret, registrationUrl, webviewUrl } from './env';
 
 const env = import.meta.env || {};
 
 // ─── Env-backed values (re-exported from env.js) ─────────────────────────────
-export { apiKey, baseUrl, deviceSecret, webviewUrl };
+export { apiKey, baseUrl, deviceSecret, registrationUrl, webviewUrl };
 
 // ─── Footer / legal URLs ─────────────────────────────────────────────────────
 // Override per-environment with VITE_TERMS_URL / VITE_PRIVACY_URL /
@@ -20,6 +20,7 @@ export const PRIVACY_URL = env.VITE_STATICVIEW_URL + 'privacypolicy' || 'https:/
 export const APP_NAME        = env.VITE_APP_NAME       || 'Mobilix IdeasCaards';
 export const POWERED_BY_NAME = env.VITE_POWERED_BY     || 'Swizzle';
 export const POWERED_BY_URL  = env.VITE_POWERED_BY_URL || 'https://swizzleup.com';
+export const SLIDEVIDEO_PAUSE_ENABLED  = false;
 
 // ─── Misc ────────────────────────────────────────────────────────────────────
 export const APP_YEAR        = new Date().getFullYear();

@@ -22,7 +22,9 @@ export default function Category() {
 
   // API shape: { category: "Plan based", subcategory: [ ... ] }
   // Older keys (categoryname / sub_categories / items) kept as fallbacks.
-  const title = data?.category || data?.categoryname || 'Category';
+  // No default fallback — the header should stay empty until the response
+  // lands rather than flashing a placeholder like "Category".
+  const title = data?.category || data?.categoryname || '';
   const items = Array.isArray(data?.subcategory)    ? data.subcategory
               : Array.isArray(data?.sub_categories) ? data.sub_categories
               : Array.isArray(data?.items)          ? data.items

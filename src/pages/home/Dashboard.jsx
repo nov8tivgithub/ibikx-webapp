@@ -7,10 +7,38 @@ import ScrollRow from '../../components/common/ScrollRow';
 import CategoryTile from '../../components/catalog/CategoryTile';
 import { useApi } from '../../hooks/useApi';
 import { useAuth } from '../../context/AuthContext';
+import { usePreScreen } from '../../context/PreScreenContext';
 import { getDashboardService } from '../../services/catalog.service';
 import { getCardViewService } from '../../services/card.service';
 import { subLink } from '../../data/categories';
 import { notify } from '../../utils/notify';
+import { SLIDEVIDEO_PAUSE_ENABLED } from '../../config/constants';
+
+// Returns true when the page is visible (tab active + window not minimised).
+// Subscribes to the Page Visibility API + window focus/blur and re-renders.
+function usePageVisible() {
+  const [visible, setVisible] = useState(
+    typeof document === 'undefined' ? true : !document.hidden
+  );
+  useEffect(() => {
+    function onVis() { setVisible(!document.hidden); }
+    function onFocus() { setVisible(!document.hidden); }
+    function onBlur() {
+      // A blurred window is effectively not being viewed — pause autoplaying
+      // media even if the tab itself is still technically "visible".
+      setVisible(false);
+    }
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      document.removeEventListener('visibilitychange', onVis);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
+  return visible;
+}
 
 // Fallback tabs used until the API responds (or if the field is missing).
 const FALLBACK_TABS = [
@@ -22,7 +50,11 @@ const FALLBACK_TABS = [
 // `isActive` is injected by CoverCarousel via cloneElement. Only the active
 // video card mounts a <video> element + plays; other video slides show their
 // poster image so we don't decode/stream a dozen videos at once.
-function FeaturedSlide({ card, type, isActive }) {
+//
+// Playback is gated on (in addition to isActive): the slide being scrolled
+// into view, the browser tab being visible, AND no pre-screen overlay open.
+// All three conditions are forwarded by Dashboard via `playableContext`.
+function FeaturedSlide({ card, type, isActive, playableContext }) {
   const image       = card.card_path || card.imageLink || card.image_path || card.image || card.preview_image || card.thumbnail;
   const video       = card.video_path || card.video || card.videoLink;
   const isVideo     = !!video && (type === 'videos' || card.is_video === '1' || card.is_video === 1 || card.type === 'video');
@@ -48,15 +80,24 @@ function FeaturedSlide({ card, type, isActive }) {
   // Only the active video card actually mounts a <video> element.
   const showVideo = isActive && isVideo;
 
+  // External pause signals from Dashboard: pageVisible (tab/window in view),
+  // carouselInView (IntersectionObserver on the carousel root), and
+  // preScreenOpen (announcement overlay). Any of these going false halts
+  // playback even if the user hasn't manually paused.
+  const { pageVisible, carouselInView, preScreenOpen } = playableContext || {
+    pageVisible: true, carouselInView: true, preScreenOpen: false,
+  };
+  const shouldPlay = showVideo && !paused && pageVisible && carouselInView && !preScreenOpen;
+
   // Drive playback from React state. If play() rejects (e.g. unmuted autoplay
   // blocked on a cold refresh), force muted=true and the next effect tick
   // replays muted so the carousel still animates on first load.
   useEffect(() => {
     const el = videoRef.current;
     if (!el || !showVideo) return;
-    if (paused) { el.pause(); return; }
+    if (!shouldPlay) { el.pause(); return; }
     el.play().catch(() => { if (!muted) setMuted(true); });
-  }, [showVideo, muted, paused]);
+  }, [showVideo, shouldPlay, muted]);
 
   function stop(e) { e.preventDefault(); e.stopPropagation(); }
   function togglePause(e) { stop(e); setPaused((p) => !p); }
@@ -93,21 +134,25 @@ function FeaturedSlide({ card, type, isActive }) {
           />
         ) : null}
 
-        {/* Pause / mute pills — only on the active video card, bottom-right. */}
+        {/* Pause / mute pills — only on the active video card, bottom-right.
+            The play/pause toggle is gated on SLIDEVIDEO_PAUSE_ENABLED so
+            deployments can hide it entirely; the mute toggle stays. */}
         {showVideo ? (
           <div className="absolute bottom-3 right-3 flex items-center gap-2 z-10">
-            <button
-              type="button"
-              onClick={togglePause}
-              aria-label={paused ? 'Play' : 'Pause'}
-              className="w-6 h-6 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur flex items-center justify-center text-white"
-            >
-              {paused ? (
-                <svg style={{ width: 14, height: 14 }} fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5z" /></svg>
-              ) : (
-                <svg style={{ width: 14, height: 14 }} fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" /></svg>
-              )}
-            </button>
+            {SLIDEVIDEO_PAUSE_ENABLED ? (
+              <button
+                type="button"
+                onClick={togglePause}
+                aria-label={paused ? 'Play' : 'Pause'}
+                className="w-6 h-6 rounded-full bg-black/45 hover:bg-black/65 backdrop-blur flex items-center justify-center text-white"
+              >
+                {paused ? (
+                  <svg style={{ width: 14, height: 14 }} fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7L8 5z" /></svg>
+                ) : (
+                  <svg style={{ width: 14, height: 14 }} fill="currentColor" viewBox="0 0 24 24"><path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" /></svg>
+                )}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={toggleMute}
@@ -179,6 +224,26 @@ export default function Dashboard() {
   const [type, setType]                  = useState('videos');
   const { data, loading, error, run }    = useApi(getDashboardService);
   const { user, refreshUser }            = useAuth();
+  const preScreen                        = usePreScreen();
+  const preScreenOpen                    = !!preScreen?.data;
+  const pageVisible                      = usePageVisible();
+
+  // IntersectionObserver on the carousel container — once the user scrolls
+  // past the carousel (so it's not in view), inView flips false and the
+  // active video stops auto-playing. Threshold of 0.25 keeps playback going
+  // while at least a quarter of the carousel is on screen.
+  const carouselRef                      = useRef(null);
+  const [carouselInView, setCarouselInView] = useState(true);
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => setCarouselInView(entry.isIntersecting),
+      { threshold: 0.25 }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [data]); // re-observe after the carousel mounts post-load
 
   useEffect(() => { run(type); }, [type, run]);
   useEffect(() => { if (error) notify.error(error); }, [error]);
@@ -254,12 +319,19 @@ export default function Dashboard() {
           {cards.length === 0 ? (
             <NoRecords />
           ) : (
-            <CoverCarousel
-              ariaLabel={type === 'videos' ? 'Featured videos' : 'Featured cards'}
-              slides={cards.map((c) => (
-                <FeaturedSlide key={c.key || c.cardkey || c.videokey || c.id} card={c} type={type} />
-              ))}
-            />
+            <div ref={carouselRef}>
+              <CoverCarousel
+                ariaLabel={type === 'videos' ? 'Featured videos' : 'Featured cards'}
+                slides={cards.map((c) => (
+                  <FeaturedSlide
+                    key={c.key || c.cardkey || c.videokey || c.id}
+                    card={c}
+                    type={type}
+                    playableContext={{ pageVisible, carouselInView, preScreenOpen }}
+                  />
+                ))}
+              />
+            </div>
           )}
 
           {/* (MenuList moved into the Topbar via user.menuList.) */}

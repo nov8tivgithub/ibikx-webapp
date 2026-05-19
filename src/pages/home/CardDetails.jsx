@@ -275,24 +275,8 @@ export default function CardDetails() {
             </span>
           ) : null}
 
-          {/* Heading — uses template_name if present, otherwise falls back
-              to the breadcrumb. The last word picks up a purple/pink
-              gradient accent like the mockup. */}
           <h1 className="mt-4 text-3xl lg:text-4xl font-extrabold text-slate-900 leading-tight">
-            {(() => {
-              const text = templateName || breadcrumb || '';
-              const parts = text.trim().split(/\s+/);
-              if (parts.length <= 1) return text;
-              const last = parts.pop();
-              return (
-                <>
-                  {parts.join(' ')}{' '}
-                  <span className="bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(135deg, #a855f7 0%, #ec4899 100%)' }}>
-                    {last}
-                  </span>
-                </>
-              );
-            })()}
+            {templateName || breadcrumb}
           </h1>
 
           {languages.length ? (
