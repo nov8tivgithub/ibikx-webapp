@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 
 export default function PopularBytesSlider({ items = [] }) {
   const trackRef = useRef(null);
+  const visible  = items.slice(0, 5);
 
-  if (!items.length) return null;
+  if (!visible.length) return null;
 
   function scrollBy(dir) {
     const el = trackRef.current;
@@ -46,7 +47,7 @@ export default function PopularBytesSlider({ items = [] }) {
         className="flex gap-4 overflow-x-auto snap-x snap-mandatory scroll-smooth pb-1 -mx-1 px-1"
         style={{ scrollbarWidth: 'none' }}
       >
-        {items.map((it) => {
+        {visible.map((it) => {
           const key = it.byteskey || it.key || it.id;
           const desc = typeof it.description === 'string'
             ? it.description.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim()
