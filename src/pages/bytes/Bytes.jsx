@@ -20,7 +20,7 @@ export default function Bytes() {
       {!loading && !items.length ? (
         <p className="text-sm text-slate-400">No bytes available right now.</p>
       ) : null}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         {items.map((it) => {
           const bytekey = it.key || it.bytekey || it.id;
           return (
