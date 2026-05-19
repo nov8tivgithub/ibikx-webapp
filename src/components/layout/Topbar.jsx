@@ -204,7 +204,7 @@ export default function Topbar({ title, back = false }) {
               </div>
 
               <Link
-                to="/profile"
+                to="/settings"
                 role="menuitem"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"

@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import { useAuth } from '../../context/AuthContext';
 import { useApi } from '../../hooks/useApi';
@@ -10,7 +10,7 @@ import { notify } from '../../utils/notify';
 
 // Selecting a sidebar item normally fires /settings with its key. A few
 // special keys instead trigger their own endpoint (e.g. referandearn fetches
-// the referral list via /wallet). Maps `selectedKey` → fetch function.
+// the referral list via /wallet). Keyed by the item's `key` (lowercased).
 const SPECIAL_SETTINGS_KEYS = {
   referandearn: (run) => run({ type: 'referral', page_id: 1 }),
 };
@@ -67,11 +67,36 @@ function SubOptionRow({ item, onOpenWebview }) {
   return <Link to={target || '#'} className={cls} style={style}>{inner}</Link>;
 }
 
+// One stat tile inside the wallet hero: icon chip on the left, label + value
+// stacked on the right, with a small upward sparkline tucked under the value
+// to echo the "earnings trending up" theme from the design.
+function StatCard({ icon, iconClass, label, value, sparkClass = 'text-slate-300' }) {
+  return (
+    <div className="rounded-2xl bg-white shadow-soft ring-1 ring-slate-200/70 px-3 py-2.5 flex items-center gap-3 min-w-0">
+      <span className={`w-9 h-9 shrink-0 rounded-full text-white flex items-center justify-center shadow-soft ${iconClass}`}>
+        {icon}
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 truncate">{label}</p>
+        <div className="flex items-end justify-between gap-2">
+          <p className="text-xl font-extrabold text-slate-900 leading-none">
+            {value}
+            <span className="ml-1 text-[11px] font-bold text-slate-400 align-baseline">pts</span>
+          </p>
+          <svg viewBox="0 0 60 18" className={`w-10 h-4 shrink-0 ${sparkClass}`} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M2 14 L14 9 L24 12 L36 4 L48 7 L58 2" />
+          </svg>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Renders the /wallet response (wallet_summary + history_types tab strip +
 // history list) inline in the Profile right pane. Matches the mobile app
-// "Wallet" screen — gradient hero with a wallet illustration, two overlapping
-// stat cards for Total Earned / Balance, a pill tab strip for the active
-// history type, and the per-entry list (or "No Records Found." empty state).
+// "Wallet" screen — gradient hero with a wallet illustration, two stat cards
+// for Total Earned / Balance, a pill tab strip for the active history type,
+// and the per-entry list (or "No Records Found." empty state).
 //
 // `onChangeType(type)` is invoked when the user picks a different history
 // tab so the parent can refetch /wallet with the new `type` parameter.
@@ -106,83 +131,63 @@ function WalletPane({ data, title, onChangeType, loading = false }) {
     <div>
       <h3 className="text-lg font-bold text-slate-900 mb-3">{title}</h3>
 
-      {/* Hero — two-column layout. Stat cards on the left, wallet
-          illustration on the right. Decorative dots + glow give the panel a
-          bit more lift than the flat gradient version. */}
-      <div className="relative rounded-3xl overflow-hidden shadow-soft bg-gradient-to-br from-sky-100 via-indigo-50 to-white">
-        {/* Soft glow + decorative dots painted into the background. */}
-        <div className="absolute -top-12 -right-12 w-56 h-56 rounded-full bg-brand-blue/15 blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -left-10 w-48 h-48 rounded-full bg-indigo-300/30 blur-3xl pointer-events-none" />
+      {/* Hero — title + subtitle on the left, stat cards in a row below,
+          wallet illustration anchored to the right edge. */}
+      <div className="relative rounded-2xl overflow-hidden shadow-soft bg-gradient-to-br from-sky-100 via-indigo-50 to-white">
         <div
-          className="absolute inset-0 opacity-[0.08] pointer-events-none"
+          className="absolute inset-0 opacity-[0.07] pointer-events-none"
           style={{
             backgroundImage: 'radial-gradient(circle at 1px 1px, #0f172a 1px, transparent 0)',
             backgroundSize: '18px 18px',
           }}
         />
 
-        <div className="relative grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:gap-6 px-5 sm:px-6 py-6 sm:py-7 items-center">
-          {/* Left — two polished stat cards side by side. */}
-          {showSummary ? (
-            <div className="grid grid-cols-2 gap-3 order-2 sm:order-1">
-              <div className="group rounded-2xl bg-white/95 backdrop-blur p-4 lg:p-5 shadow-soft ring-1 ring-brand-blue/15 hover:ring-brand-blue/40 transition flex items-center gap-4">
-                <span className="w-11 h-11 shrink-0 rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white flex items-center justify-center shadow-soft">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-2 0-4 1-4 3s2 3 4 3 4 1 4 3-2 3-4 3m0-12V4m0 16v2M5 12h14" />
-                  </svg>
-                </span>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 truncate">{totalLabel}</p>
-                  <p className="mt-0.5 text-2xl lg:text-3xl font-extrabold text-slate-900 leading-none">
-                    {totalValue}
-                    <span className="ml-1 text-sm font-bold text-slate-400 align-baseline">pts</span>
-                  </p>
-                </div>
-              </div>
-              <div className="group rounded-2xl bg-white/95 backdrop-blur p-4 lg:p-5 shadow-soft ring-1 ring-brand-blue/15 hover:ring-brand-blue/40 transition flex items-center gap-4">
-                <span className="w-11 h-11 shrink-0 rounded-2xl bg-gradient-to-br from-sky-400 to-brand-blue text-white flex items-center justify-center shadow-soft">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0zM12 8v8m-3-4h6" />
-                  </svg>
-                </span>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 truncate">{balanceLabel}</p>
-                  <p className="mt-0.5 text-2xl lg:text-3xl font-extrabold text-slate-900 leading-none">
-                    {balanceValue}
-                    <span className="ml-1 text-sm font-bold text-slate-400 align-baseline">pts</span>
-                  </p>
-                </div>
-              </div>
-            </div>
-          ) : <div className="order-2 sm:order-1" />}
+        <div className="relative grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4 sm:gap-6 px-5 sm:px-6 py-5 items-center">
+          <div className="min-w-0">
+            <h4 className="text-lg font-extrabold text-slate-900 leading-tight">{title} Overview</h4>
+            <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Track your points, rewards and earnings</p>
 
-          {/* Right — wallet illustration. */}
-          <div className="order-1 sm:order-2 flex justify-center sm:justify-end">
-            <svg viewBox="0 0 200 160" className="w-40 h-32 lg:w-52 lg:h-44 drop-shadow-xl" aria-hidden="true">
-              <defs>
-                <linearGradient id="wallet-grad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3b82f6" />
-                  <stop offset="100%" stopColor="#1d4ed8" />
-                </linearGradient>
-              </defs>
-              <rect x="32" y="50" width="120" height="80" rx="14" fill="url(#wallet-grad)" />
-              <rect x="40" y="44" width="80" height="14" rx="6" fill="#1e40af" />
-              <circle cx="138" cy="90" r="8" fill="#fde68a" stroke="#f59e0b" strokeWidth="2" />
-              <rect x="60" y="20" width="40" height="50" rx="4" fill="#fda4af" />
-              <rect x="74" y="14" width="40" height="50" rx="4" fill="#86efac" />
-              <rect x="88" y="8"  width="40" height="50" rx="4" fill="#fcd34d" />
-              <circle cx="44" cy="118" r="6" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1.5" />
-              <circle cx="34" cy="126" r="6" fill="#fbbf24" stroke="#f59e0b" strokeWidth="1.5" />
-              <path d="M158 116 v-14 h6 v14 h-6z M168 116 v-22 h6 v22 h-6z M178 116 v-10 h6 v10 h-6z" fill="#34d399" />
-              <path d="M158 90 l8 -10 l6 6 l10 -14" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M180 75 l3 3 l-3 3 l-3 -3 z" fill="#22c55e" />
-            </svg>
+            {showSummary ? (
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <StatCard
+                  label={totalLabel}
+                  value={totalValue}
+                  iconClass="bg-gradient-to-br from-emerald-400 to-emerald-600"
+                  sparkClass="text-emerald-500"
+                  icon={(
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M12 2.6l2.95 5.98 6.6.96-4.78 4.66 1.13 6.57L12 17.77l-5.9 3 1.13-6.57L2.45 9.54l6.6-.96L12 2.6z" />
+                    </svg>
+                  )}
+                />
+                <StatCard
+                  label={balanceLabel}
+                  value={balanceValue}
+                  iconClass="bg-gradient-to-br from-sky-400 to-brand-blue"
+                  sparkClass="text-sky-500"
+                  icon={(
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24" aria-hidden="true">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
+                    </svg>
+                  )}
+                />
+              </div>
+            ) : null}
+          </div>
+
+          <div className="hidden sm:flex justify-end items-center shrink-0">
+            <img
+              src={`${import.meta.env.BASE_URL}assets/img/wallet-hero.png`}
+              alt=""
+              aria-hidden="true"
+              className="w-36 h-36 lg:w-44 lg:h-44 object-contain drop-shadow-xl"
+            />
           </div>
         </div>
       </div>
 
       {showTabs && tabs.length ? (
-        <div className="mt-5 inline-flex bg-slate-100 rounded-full p-1 shadow-soft w-full">
+        <div className="mt-5 inline-flex bg-slate-200 rounded-full p-1 shadow-soft w-full">
           {tabs.map((t) => {
             const active = t.type === activeType;
             return (
@@ -245,14 +250,49 @@ function WalletPane({ data, title, onChangeType, loading = false }) {
 export default function Profile() {
   const [copied, setCopied]           = useState(false);
   const [confirmLogout, setConfirm]   = useState(false);
-  const [selectedKey, setSelectedKey] = useState('myaccount');
+  const navigate                      = useNavigate();
+  // The active settings pane is identified in the URL by the menuList item's
+  // `type` field (`/settings/<type>`). Internally we still pass the item's
+  // `key` to the /settings API — `type` is the URL-facing identifier, `key`
+  // is the API-facing one.
+  const { settingType }               = useParams();
+  const selectedType                  = settingType || '';
+  const setSelectedType = (type) => {
+    navigate(type ? `/settings/${encodeURIComponent(type)}` : '/settings');
+  };
   // `webview` holds the currently-displayed sub-option iframe info:
   //   { title, url }   (e.g. clicking "My Profile" → backend editprofile page)
   // null means the right pane shows the normal profile / sub-options view.
   const [webview, setWebview]         = useState(null);
   const [webviewLoaded, setWebviewLoaded] = useState(false);
-  const navigate                      = useNavigate();
+  // Bumped to force a fresh iframe mount (e.g. when the embedded page signals
+  // it has finished and we want to reload back to the original start URL).
+  const [webviewReloadKey, setWebviewReloadKey] = useState(0);
+  const webviewRef                    = useRef(null);
+  useEffect(() => { webviewRef.current = webview; }, [webview]);
   const { user, logout, refreshUser } = useAuth();
+
+  // Embedded pages (e.g. the Razorpay /razorpay/completed redirect) signal
+  // they're done by posting { type: 'mobilix:webview-complete' } to the
+  // parent window. We respond by reloading the iframe to the URL it was
+  // originally opened with — webview.url stays at the start URL even after
+  // inner navigation, so bumping the key is enough to force a remount.
+  useEffect(() => {
+    function onMessage(ev) {
+      const d = ev.data;
+      if (!d || typeof d !== 'object' || d.type !== 'mobilix:webview-complete') return;
+      const current = webviewRef.current;
+      if (!current?.url) return;
+      // Only trust messages from the iframe's own origin.
+      try {
+        if (ev.origin !== new URL(current.url).origin) return;
+      } catch { return; }
+      setWebviewLoaded(false);
+      setWebviewReloadKey((k) => k + 1);
+    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
 
   const { data, loading, error } = useApiOnMount(getProfileService);
   useEffect(() => { if (error) notify.error(error); }, [error]);
@@ -300,13 +340,18 @@ export default function Profile() {
     [data],
   );
 
-  // Pick a sensible default on first load — the first "settings" item the
-  // backend returns (e.g. myaccount).
+  // Pick a sensible default on first load — the first menulist item, so the
+  // URL always carries a concrete type. Non-selectable rows (logout / share)
+  // are skipped so the right pane has something to show.
   useEffect(() => {
-    if (selectedKey && settingsItems.some((i) => i.key === selectedKey)) return;
-    const firstSettings = settingsItems.find((i) => (i.moduleName || '').toLowerCase() === 'settings');
-    if (firstSettings) setSelectedKey(firstSettings.key);
-  }, [settingsItems, selectedKey]);
+    if (selectedType && settingsItems.some((i) => (i.type || i.key) === selectedType)) return;
+    const first = settingsItems.find((i) => {
+      const m = (i.moduleName || '').toLowerCase();
+      return m === 'settings' || m === 'webpage';
+    });
+    const t = first?.type || first?.key;
+    if (t) setSelectedType(t);
+  }, [settingsItems, selectedType]);
 
   // /settings fetch for the currently-selected settings item.
   const {
@@ -329,15 +374,24 @@ export default function Profile() {
   useEffect(() => { if (walletError) notify.error(walletError); }, [walletError]);
 
   useEffect(() => {
-    if (!selectedKey) return;
-    // Only fetch /settings for actual settings-module items. webPage items
-    // (whose key is a full URL) shouldn't trigger a /settings call.
-    const sel = settingsItems.find((i) => i.key === selectedKey);
-    if (sel && (sel.moduleName || '').toLowerCase() !== 'settings') return;
-    const special = SPECIAL_SETTINGS_KEYS[selectedKey.toLowerCase?.()];
+    if (!selectedType) return;
+    const sel = settingsItems.find((i) => (i.type || i.key) === selectedType);
+    if (!sel) return;
+    // webPage sidebar items: skip /settings and open their iframe directly.
+    // Keeps deep-links like /settings/cardsubscription rendering the same
+    // webview the sidebar click would have produced.
+    if ((sel.moduleName || '').toLowerCase() === 'webpage') {
+      setWebview({ title: sel.title || '', url: sel.url || sel.key || '' });
+      setWebviewLoaded(false);
+      return;
+    }
+    // Non-webPage sidebar item — make sure any previously-open iframe is hidden.
+    setWebview(null);
+    const apiKey  = sel.key || '';
+    const special = SPECIAL_SETTINGS_KEYS[apiKey.toLowerCase?.()];
     if (special) { special(runWallet); return; }
-    runSettings(selectedKey);
-  }, [selectedKey, runSettings, runWallet, settingsItems]);
+    runSettings(apiKey);
+  }, [selectedType, runSettings, runWallet, settingsItems]);
 
   // The /settings response uses `subList` or `items` or `menuList` depending
   // on the endpoint version — accept any of them.
@@ -389,14 +443,9 @@ export default function Profile() {
       );
       return;
     }
-    // settings or webPage → mark as selected; webPage also opens its iframe.
-    setSelectedKey(item.key);
-    if (mod === 'webpage') {
-      setWebview({ title: item.title || '', url: item.url || item.key || '' });
-      setWebviewLoaded(false);
-    } else {
-      setWebview(null);
-    }
+    // settings or webPage → mark as selected. The selectedType effect below
+    // takes care of opening the iframe for webPage items.
+    setSelectedType(item.type || item.key);
   }
 
   // Open a sub-option's webview in-place instead of a new tab.
@@ -405,19 +454,21 @@ export default function Profile() {
     setWebviewLoaded(false);
   }
   // Closing the webview. If the currently-selected item is a sidebar webPage
-  // (e.g. Card Subscription Plans), the selectedKey holds a URL — falling
-  // back to that view would be empty, so snap to My Account instead. If the
-  // webview was opened from a sub-option, the selectedKey already points at
-  // its parent settings item, so we just hide the iframe.
+  // the URL points at its type but there's no sub-options pane to fall back
+  // to, so snap to the first selectable item instead. Sub-option webviews
+  // already have the parent settings item selected, so we just hide the iframe.
   function closeWebview() {
     setWebview(null);
-    const sel = settingsItems.find((i) => i.key === selectedKey);
+    const sel = settingsItems.find((i) => (i.type || i.key) === selectedType);
     if (sel && (sel.moduleName || '').toLowerCase() === 'webpage') {
-      setSelectedKey('myaccount');
+      const first = settingsItems.find((i) => (i.moduleName || '').toLowerCase() === 'settings');
+      const t = first?.type || first?.key;
+      if (t) setSelectedType(t);
     }
   }
 
-  const selectedItem = settingsItems.find((i) => i.key === selectedKey);
+  const selectedItem = settingsItems.find((i) => (i.type || i.key) === selectedType);
+  const selectedKey  = selectedItem?.key || '';
 
   // Gate the entire page on /myaccount — no header, no skeleton; just the
   // standard PageSpinner from Layout until the first response lands.
@@ -432,8 +483,9 @@ export default function Profile() {
             {settingsItems.map((item) => {
               const mod      = (item.moduleName || '').toLowerCase();
               const isLogout = mod === 'logout' || /logout|signout|sign\s*out/i.test(item.title || '');
+              const itemType = item.type || item.key;
               // Selectable rows: settings + webPage. Both highlight when active.
-              const isActive = item.key === selectedKey && (mod === 'settings' || mod === 'webpage');
+              const isActive = itemType === selectedType && (mod === 'settings' || mod === 'webpage');
               return (
                 <button
                   key={item.title}
@@ -457,8 +509,15 @@ export default function Profile() {
                       />
                     ) : null}
                   </span>
-                  <span className={`text-sm font-semibold flex-1 truncate ${isLogout && !isActive ? 'text-rose-600' : ''}`}>
-                    {item.title}
+                  <span className="flex-1 min-w-0">
+                    <span className={`block text-sm font-semibold truncate ${isLogout && !isActive ? 'text-rose-600' : ''}`}>
+                      {item.title}
+                    </span>
+                    {item.desc ? (
+                      <span className={`block text-xs truncate ${isActive ? 'text-white/80' : 'text-slate-500'}`}>
+                        {item.desc}
+                      </span>
+                    ) : null}
                   </span>
                   {!isLogout ? (
                     <svg className={`w-4 h-4 ${isActive ? 'text-white/80' : 'text-slate-400'}`} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -478,16 +537,21 @@ export default function Profile() {
         {webview ? (
           <div>
             <div className="flex items-center gap-3 mb-4">
-              <button
-                type="button"
-                onClick={closeWebview}
-                aria-label="Back"
-                className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-700 hover:border-brand-blue/40 hover:text-brand-blue transition"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
-                </svg>
-              </button>
+              {/* Back button only when the webview was opened from a sub-option.
+                  For a main sidebar webPage item the sidebar itself is the way
+                  back, so the arrow would be confusing. */}
+              {(selectedItem?.moduleName || '').toLowerCase() !== 'webpage' && (
+                <button
+                  type="button"
+                  onClick={closeWebview}
+                  aria-label="Back"
+                  className="inline-flex items-center justify-center w-9 h-9 rounded-full border border-slate-200 bg-white text-slate-700 hover:border-brand-blue/40 hover:text-brand-blue transition"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.4" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 18l-6-6 6-6" />
+                  </svg>
+                </button>
+              )}
               <h3 className="text-lg font-bold text-slate-900 truncate flex-1">{webview.title || 'Settings'}</h3>
             </div>
             <div className="relative rounded-2xl overflow-hidden border border-slate-200 bg-white" style={{ height: '70vh' }}>
@@ -497,6 +561,7 @@ export default function Profile() {
                 </div>
               )}
               <iframe
+                key={webviewReloadKey}
                 src={webview.url}
                 title={webview.title || 'Settings'}
                 // referrerPolicy intentionally NOT set to no-referrer — some
@@ -548,7 +613,7 @@ export default function Profile() {
         <>
           {selectedKey === 'myaccount' ? (
           <>
-          <section className="flex flex-col md:flex-row md:items-center gap-5 pb-5 border-b border-slate-100">
+          <section className="flex flex-col md:flex-row md:items-center gap-5 pb-5 border-b border-slate-100 mb-6">
             <div className="w-24 h-24 lg:w-28 lg:h-28 rounded-full ring-[3px] ring-brand-blue overflow-hidden bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-2xl shrink-0">
               {avatarUrl
                 ? <img src={avatarUrl} alt="" className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
@@ -585,7 +650,7 @@ export default function Profile() {
 
 
           {cert && showCertificates ? (
-            <section className="mt-6">
+            <section className="mb-6">
               <div className="flex items-baseline justify-between">
                 <h3 className="text-lg font-bold text-slate-900">{cert.title || 'Certificates'}</h3>
                 {showViewCertificates ? (
@@ -613,7 +678,7 @@ export default function Profile() {
               with the selected key. Header uses `cardTitle` from the
               response (e.g. "My Account") with the menuList item title as a
               fallback. Inline spinner while the request is in flight. */}
-          <section className="mt-6">
+          <section>
             <h3 className="text-lg font-bold text-slate-900 mb-3">
               {settingsData?.cardTitle || selectedItem?.title || 'Settings'}
             </h3>

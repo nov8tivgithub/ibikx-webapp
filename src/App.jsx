@@ -92,7 +92,8 @@ export default function App() {
         <Route path="/leaderboard" element={<Leaderboard />} />
 
         {/* Profile */}
-        <Route path="/profile" element={<Profile />} />
+        <Route path="/settings" element={<Profile />} />
+        <Route path="/settings/:settingType" element={<Profile />} />
         <Route path="/account" element={<Account />} />
         <Route path="/my-profile" element={<MyProfile />} />
         <Route path="/change-password" element={<ChangePassword />} />

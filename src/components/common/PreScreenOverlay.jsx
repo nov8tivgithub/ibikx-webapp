@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { usePreScreen } from '../../context/PreScreenContext';
+import { closeWebViewService } from '../../services/catalog.service';
 
 // One overlay mounted at the app root. Renders nothing until something calls
 // preScreen.show(data) (auto-triggered by useApi when a response sets
@@ -18,6 +19,16 @@ export default function PreScreenOverlay() {
     return () => { document.body.style.overflow = prev; };
   }, [data]);
 
+  // Report dismissal back to the backend (/closewebview) and then close locally.
+  // Fire-and-forget — the UI shouldn't wait on the response.
+  const popupTypeId = data?.popup_typeid;
+  const close = useCallback(() => {
+    if (popupTypeId != null && popupTypeId !== '') {
+      closeWebViewService(popupTypeId);
+    }
+    hide();
+  }, [popupTypeId, hide]);
+
   if (!data) return null;
 
   const quarter   = data.screen_mode === 'quarter';
@@ -25,14 +36,8 @@ export default function PreScreenOverlay() {
   const url       = data.prescreen_url;
   const title     = data.title;
 
-  // Backdrop click closes the overlay only when the close button is allowed.
-  function onBackdropClick(e) {
-    if (e.target === e.currentTarget && showClose) hide();
-  }
-
   return (
     <div
-      onClick={onBackdropClick}
       className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-slate-900/55 backdrop-blur-sm"
     >
       <div
@@ -48,7 +53,7 @@ export default function PreScreenOverlay() {
             {showClose && (
               <button
                 type="button"
-                onClick={hide}
+                onClick={close}
                 aria-label="Close"
                 className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center shrink-0"
               >

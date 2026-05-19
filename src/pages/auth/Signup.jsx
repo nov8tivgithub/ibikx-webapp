@@ -78,7 +78,7 @@ export default function Signup() {
       if (!href) return;
       const url = new URL(href);
       if (
-        url.hostname === SUCCESS_HOSTNAME &&
+        url.hostname === REGISTRATION_HOST &&
         url.pathname.includes(SUCCESS_PATH_HINT) &&
         url.searchParams.get('fromregister') === '1'
       ) {
