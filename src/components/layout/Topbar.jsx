@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { notify } from '../../utils/notify';
 
 // Initials fallback for the avatar pill when there's no imagelink to show.
 function deriveInitials(user) {
@@ -96,6 +97,30 @@ export default function Topbar({ title, back = false }) {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [webview]);
+
+  // Embedded /editprofile (and any other dropdown webview) signals success
+  // by posting { source: 'mobilix', event: 'webview-success', message } to
+  // the parent. We close the modal and surface a success toast. The handler
+  // sees `webview` via ref so the listener can stay mounted for the
+  // lifetime of the Topbar without resubscribing on every open/close.
+  const webviewRef = useRef(webview);
+  useEffect(() => { webviewRef.current = webview; }, [webview]);
+  useEffect(() => {
+    function onMessage(ev) {
+      const d = ev.data;
+      if (!d || typeof d !== 'object') return;
+      if (d.source !== 'mobilix' || d.event !== 'webview-success') return;
+      const current = webviewRef.current;
+      if (!current?.url) return;
+      try {
+        if (ev.origin !== new URL(current.url).origin) return;
+      } catch { return; }
+      setWebview(null);
+      notify.success(d.message || 'Updated successfully');
+    }
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
 
   // Header menu click — webPage modules open an in-page iframe modal;
   // anything else keeps the original "open in new tab" anchor behavior.
