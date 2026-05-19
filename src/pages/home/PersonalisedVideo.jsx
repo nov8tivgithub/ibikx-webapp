@@ -67,8 +67,13 @@ export default function PersonalisedVideo() {
   const personaliseWait = personalised.peronalise_content  || 'Please wait while we personalise.';
 
   const ab           = personalised.action_buttons || {};
-  const showShare    = ab.show_share === '1' || ab.show_share === 1;
-  const showWhatsapp = ab.share_whatsapp === '1' || ab.share_whatsapp === 1;
+  // Sharing is gated on show_personilze_btn — only available once the card
+  // has already been personalised (show_personilze_btn === '0'). While the
+  // personalise CTA is visible (value '1'), sharing isn't meaningful yet so
+  // the entire action stack stays hidden.
+  const canShare     = personalised.show_personilze_btn === '0' || personalised.show_personilze_btn === 0;
+  const showShare    = canShare && (ab.show_share === '1' || ab.show_share === 1);
+  const showWhatsapp = canShare && (ab.share_whatsapp === '1' || ab.share_whatsapp === 1);
   const isShareable  = ab.is_card_shareable === '1' || ab.is_card_shareable === 1;
   const shareErrMsg  = ab.share_error_msg || 'Sharing is unavailable.';
   // Event log type IDs from action_buttons drive /sharecard server-side.
@@ -134,16 +139,54 @@ export default function PersonalisedVideo() {
     setFav(next);
     markAsFavouriteService({ templatekey, favourite: next ? '1' : '0', type });
   }
-  function onShare() {
+  // Share the actual media file (not just a link) via Web Share Level 2.
+  // Requires the asset host to allow CORS (the S3 bucket does). Falls back
+  // to URL sharing only if the browser doesn't support `files`.
+  async function onShare() {
     if (!isShareable) { notify.error(shareErrMsg); return; }
     if (templatekey) shareCardService({ templatekey, eventlogtypeid: shareLogId, type });
+    try {
+      const res  = await fetch(videoUrl);
+      const blob = await res.blob();
+      const ext  = (videoUrl.split('?')[0].split('.').pop() || 'mp4').toLowerCase();
+      const mime = blob.type || 'video/mp4';
+      const base = (breadcrumb || templateName || 'video').replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'video';
+      const file = new File([blob], `${base}.${ext}`, { type: mime });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ title: breadcrumb || templateName, files: [file] });
+        return;
+      }
+    } catch {
+      /* fall through to URL share */
+    }
     if (navigator.share) {
       navigator.share({ title: breadcrumb, url: shareUrl }).catch(() => {});
+    } else {
+      notify.error('Sharing is not supported in this browser.');
     }
   }
-  function onShareWhatsapp() {
+  // WhatsApp share — wa.me URLs can only carry text, so to actually attach
+  // the video file we route through the native share sheet (Web Share L2).
+  // On mobile this surfaces WhatsApp prominently so the user lands in WA
+  // with the file pre-attached. On browsers without file sharing support
+  // (desktop Chromium) we fall back to the wa.me text link.
+  async function onShareWhatsapp() {
     if (!isShareable) { notify.error(shareErrMsg); return; }
     if (templatekey) shareCardService({ templatekey, eventlogtypeid: whatsappLogId, type });
+    try {
+      const res  = await fetch(videoUrl);
+      const blob = await res.blob();
+      const ext  = (videoUrl.split('?')[0].split('.').pop() || 'mp4').toLowerCase();
+      const mime = blob.type || 'video/mp4';
+      const base = (breadcrumb || templateName || 'video').replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'video';
+      const file = new File([blob], `${base}.${ext}`, { type: mime });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ title: breadcrumb || templateName, files: [file] });
+        return;
+      }
+    } catch {
+      /* fall through to wa.me text link */
+    }
     window.open(`https://wa.me/?text=${encodeURIComponent(shareUrl)}`, '_blank', 'noopener,noreferrer');
   }
 
@@ -252,44 +295,6 @@ export default function PersonalisedVideo() {
               </div>
             )}
 
-            {/* Floating action stack — favourite + share buttons pinned to
-                the right edge of the media. */}
-            {videoUrl ? (
-              <div className="absolute top-1/2 -translate-y-1/2 right-2.5 flex flex-col gap-1.5 bg-black/35 backdrop-blur-md rounded-full px-1.5 py-2 ring-1 ring-white/10">
-                <button
-                  type="button"
-                  onClick={onToggleFav}
-                  aria-label={fav ? 'Unfavourite' : 'Favourite'}
-                  className="w-9 h-9 rounded-full bg-white/95 flex items-center justify-center hover:scale-110 transition shadow-soft"
-                >
-                  <svg className="w-4 h-4" fill={fav ? '#ef4444' : 'none'} stroke={fav ? '#ef4444' : '#0f172a'} strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                  </svg>
-                </button>
-                {showShare ? (
-                  <button
-                    type="button"
-                    onClick={onShare}
-                    aria-label="Share"
-                    className="w-9 h-9 rounded-full bg-white/95 flex items-center justify-center text-slate-700 hover:scale-110 transition shadow-soft"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l18-9-7 18-2-7-9-2z" />
-                    </svg>
-                  </button>
-                ) : null}
-                {showWhatsapp ? (
-                  <button
-                    type="button"
-                    onClick={onShareWhatsapp}
-                    aria-label="Send on WhatsApp"
-                    className="w-9 h-9 rounded-full bg-emerald-500 text-white flex items-center justify-center hover:scale-110 transition shadow-soft"
-                  >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.5 3.5A11 11 0 0 0 3 17.4L1.6 22l4.7-1.4A11 11 0 1 0 20.5 3.5zm-8.5 17a8.9 8.9 0 0 1-4.6-1.2l-.3-.2-2.8.8.8-2.7-.2-.3a9 9 0 1 1 7.1 3.6zm5-6.6c-.3-.2-1.6-.8-1.9-.9-.3-.1-.5-.1-.7.2-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.5-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.7l.5-.6c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.7-1.7c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5 0 1.5 1.1 2.9 1.2 3.1.2.2 2.2 3.4 5.3 4.7.7.3 1.3.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.6-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3z"/></svg>
-                  </button>
-                ) : null}
-              </div>
-            ) : null}
           </div>
         </div>
 
@@ -356,7 +361,11 @@ export default function PersonalisedVideo() {
             </>
           ) : null}
 
-          {/* Favourite + Personalise — identical pairing to CardDetails. */}
+          {/* Action row — when the card is still un-personalised
+              (show_personilze_btn === '1') it pairs Favourite + Personalise.
+              Once personalised (show_personilze_btn === '0' ⇒ canShare),
+              the Personalise CTA is replaced by the Share + WhatsApp
+              buttons inline so the same slot drives the next action. */}
           <div className="mt-8 flex gap-3">
             <button
               type="button"
@@ -368,13 +377,41 @@ export default function PersonalisedVideo() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
               </svg>
             </button>
-            <button
-              onClick={onPersonalise}
-              disabled={submitting || viewLoading || !templatekey}
-              className="flex-1 bg-brand-blue text-white text-base font-bold rounded-2xl py-4 px-6 shadow-soft hover:opacity-95 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {submitting ? 'Personalising…' : personaliseText}
-            </button>
+            {!canShare ? (
+              <button
+                onClick={onPersonalise}
+                disabled={submitting || viewLoading || !templatekey}
+                className="flex-1 bg-brand-blue text-white text-base font-bold rounded-2xl py-4 px-6 shadow-soft hover:opacity-95 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {submitting ? 'Personalising…' : personaliseText}
+              </button>
+            ) : (
+              <>
+                {showShare ? (
+                  <button
+                    type="button"
+                    onClick={onShare}
+                    aria-label="Share"
+                    className="w-14 h-14 rounded-2xl border border-slate-200 bg-white flex items-center justify-center text-slate-700 hover:border-brand-blue/40 transition shrink-0"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l18-9-7 18-2-7-9-2z" />
+                    </svg>
+                  </button>
+                ) : null}
+                {showWhatsapp ? (
+                  <button
+                    type="button"
+                    onClick={onShareWhatsapp}
+                    aria-label="Send on WhatsApp"
+                    className="flex-1 bg-emerald-500 text-white text-base font-bold rounded-2xl py-4 px-6 shadow-soft hover:opacity-95 transition flex items-center justify-center gap-2"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M20.5 3.5A11 11 0 0 0 3 17.4L1.6 22l4.7-1.4A11 11 0 1 0 20.5 3.5zm-8.5 17a8.9 8.9 0 0 1-4.6-1.2l-.3-.2-2.8.8.8-2.7-.2-.3a9 9 0 1 1 7.1 3.6zm5-6.6c-.3-.2-1.6-.8-1.9-.9-.3-.1-.5-.1-.7.2-.2.3-.7.9-.9 1.1-.2.2-.3.2-.6.1-.3-.2-1.2-.5-2.3-1.5-.9-.8-1.4-1.7-1.6-2-.2-.3 0-.5.1-.7l.5-.6c.1-.2.2-.3.3-.5.1-.2 0-.4 0-.5l-.7-1.7c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.8.4-.3.3-1 1-1 2.5 0 1.5 1.1 2.9 1.2 3.1.2.2 2.2 3.4 5.3 4.7.7.3 1.3.5 1.7.6.7.2 1.3.2 1.8.1.6-.1 1.6-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3z"/></svg>
+                    Share on WhatsApp
+                  </button>
+                ) : null}
+              </>
+            )}
           </div>
         </div>
       </div>
