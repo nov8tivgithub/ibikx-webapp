@@ -20,9 +20,14 @@ export default function Footer() {
           href={POWERED_BY_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-slate-400 hover:text-slate-600 transition"
+          className="inline-flex items-center gap-1.5 text-slate-400 hover:text-slate-600 transition"
         >
-          Powered by <span className="font-semibold">{POWERED_BY_NAME}</span>
+          Powered by
+          <img
+            src={`${import.meta.env.BASE_URL}assets/img/swizzle-logo.png`}
+            alt={POWERED_BY_NAME}
+            className="h-4 w-auto"
+          />
         </a>
       </div>
     </footer>

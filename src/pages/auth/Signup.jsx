@@ -9,7 +9,18 @@ import { notify } from '../../utils/notify';
 const REGISTRATION_HOST = (() => {
   try { return new URL(registrationUrl).hostname; } catch { return ''; }
 })();
-const SUCCESS_PATH_HINT = '/razorpay/success';
+// The registration redirect chain currently lands on one of:
+//   /razorpay/completed?type=…              (always indicates success)
+//   /razorpay/success?fromregister=1        (legacy path, also used by payment
+//                                            success — so gate strictly on
+//                                            ?fromregister=1)
+const SUCCESS_PATHS = ['/razorpay/completed', '/razorpay/success'];
+function isSuccessUrl(url) {
+  if (!url) return false;
+  if (url.pathname.includes('/razorpay/completed')) return true;
+  if (url.pathname.includes('/razorpay/success') && url.searchParams.get('fromregister') === '1') return true;
+  return false;
+}
 const DEFAULT_SUCCESS   = 'Thank you\nYour registration is successful.';
 
 // The signup form is hosted on the backend and embedded as an iframe. On
@@ -54,11 +65,7 @@ export default function Signup() {
         const href = win?.location?.href;
         if (!href) return;
         const url = new URL(href);
-        if (
-          url.hostname === REGISTRATION_HOST &&
-          url.pathname.includes(SUCCESS_PATH_HINT) &&
-          url.searchParams.get('fromregister') === '1'
-        ) {
+        if (url.hostname === REGISTRATION_HOST && isSuccessUrl(url)) {
           handleSuccess(url.searchParams.get('message'));
         }
       } catch {
@@ -77,11 +84,7 @@ export default function Signup() {
       const href = win?.location?.href;
       if (!href) return;
       const url = new URL(href);
-      if (
-        url.hostname === REGISTRATION_HOST &&
-        url.pathname.includes(SUCCESS_PATH_HINT) &&
-        url.searchParams.get('fromregister') === '1'
-      ) {
+      if (url.hostname === REGISTRATION_HOST && isSuccessUrl(url)) {
         handleSuccess(url.searchParams.get('message'));
       }
     } catch {

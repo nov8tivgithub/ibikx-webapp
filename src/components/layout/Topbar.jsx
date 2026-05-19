@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -107,6 +107,18 @@ export default function Topbar({ title, back = false }) {
     setWebviewLoaded(false);
   }
 
+  // Split the header menu: the subscription tile stays as the inline pill
+  // in the header, everything else moves into the avatar dropdown so the
+  // top bar doesn't re-flow whenever the menu list comes back with more
+  // than one item. Memoised on the raw array reference so successive
+  // /dashboardnew refreshes with the same items don't churn the children.
+  const { subscriptionItem, extraItems } = useMemo(() => {
+    const list = Array.isArray(user?.headerMenuList) ? user.headerMenuList : [];
+    const sub = list.find((m) => (m?.type || '').toLowerCase() === 'subscription');
+    const extras = sub ? list.filter((m) => m !== sub) : list.slice();
+    return { subscriptionItem: sub || null, extraItems: extras };
+  }, [user?.headerMenuList]);
+
   return (
     <header className="border-b border-slate-100 bg-white">
       <div className="px-4 lg:px-8 h-16 flex items-center gap-3">
@@ -129,39 +141,35 @@ export default function Topbar({ title, back = false }) {
           <span className="flex-1" />
         )}
 
-        {/* Dashboard-supplied menu items — rendered inline before the avatar.
+        {/* Subscription pill — the one menu item we surface inline.
             Sourced from `user.headerMenuList` (the /dashboardnew menuList);
-            the Profile page's /myaccount menuList is intentionally NOT used
-            here so the two never collide. */}
-        {Array.isArray(user?.headerMenuList) && user.headerMenuList.length ? (
+            any other items move into the avatar dropdown below. */}
+        {subscriptionItem ? (
           <nav className="hidden sm:flex items-center gap-2 shrink-0 mr-1">
-            {user.headerMenuList.map((m) => (
-              <a
-                key={m.title}
-                href={m.url || m.key}
-                target="_blank"
-                rel="noopener noreferrer"
-                title={m.desc || m.title}
-                onClick={(e) => onHeaderMenuClick(e, m)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-slate-800 hover:shadow-soft transition border border-slate-200/70"
-                style={{ backgroundColor: m.menuColor || '#ffffff' }}
-              >
-                {m.iconUrl ? (
-                  <img
-                    src={m.iconUrl}
-                    alt=""
-                    className="w-6 h-6 object-contain shrink-0"
-                    onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                  />
+            <a
+              href={subscriptionItem.url || subscriptionItem.key}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={subscriptionItem.desc || subscriptionItem.title}
+              onClick={(e) => onHeaderMenuClick(e, subscriptionItem)}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-slate-800 hover:shadow-soft transition border border-slate-200/70"
+              style={{ backgroundColor: subscriptionItem.menuColor || '#ffffff' }}
+            >
+              {subscriptionItem.iconUrl ? (
+                <img
+                  src={subscriptionItem.iconUrl}
+                  alt=""
+                  className="w-6 h-6 object-contain shrink-0"
+                  onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                />
+              ) : null}
+              <span className="hidden md:flex flex-col items-start leading-tight min-w-0">
+                <span className="text-xs lg:text-sm font-semibold truncate max-w-[10rem]">{subscriptionItem.title}</span>
+                {subscriptionItem.desc ? (
+                  <span className="text-[10px] lg:text-[11px] text-slate-500 truncate max-w-[10rem]">{subscriptionItem.desc}</span>
                 ) : null}
-                <span className="hidden md:flex flex-col items-start leading-tight min-w-0">
-                  <span className="text-xs lg:text-sm font-semibold truncate max-w-[10rem]">{m.title}</span>
-                  {m.desc ? (
-                    <span className="text-[10px] lg:text-[11px] text-slate-500 truncate max-w-[10rem]">{m.desc}</span>
-                  ) : null}
-                </span>
-              </a>
-            ))}
+              </span>
+            </a>
           </nav>
         ) : null}
 
@@ -172,18 +180,28 @@ export default function Topbar({ title, back = false }) {
             aria-haspopup="menu"
             aria-expanded={open}
             aria-label="Account menu"
-            className="w-10 h-10 rounded-full overflow-hidden bg-slate-200 ring-2 ring-brand-blue/30 hover:ring-brand-blue/60 transition flex items-center justify-center text-slate-600 font-bold text-sm"
+            className="relative w-10 h-10 rounded-full overflow-visible bg-slate-200 ring-2 ring-brand-blue/30 hover:ring-brand-blue/60 transition flex items-center justify-center text-slate-600 font-bold text-sm"
           >
-            {showImage ? (
-              <img
-                src={imagelink}
-                alt=""
-                className="w-full h-full object-cover"
-                onError={() => setImgFailed(true)}
-              />
-            ) : (
-              initials
-            )}
+            <span className="w-full h-full rounded-full overflow-hidden flex items-center justify-center">
+              {showImage ? (
+                <img
+                  src={imagelink}
+                  alt=""
+                  className="w-full h-full object-cover"
+                  onError={() => setImgFailed(true)}
+                />
+              ) : (
+                initials
+              )}
+            </span>
+            {extraItems.length ? (
+              <span
+                aria-label={`${extraItems.length} notification${extraItems.length === 1 ? '' : 's'}`}
+                className="absolute -top-0.5 -right-0.5 min-w-[1rem] h-4 px-1 rounded-full bg-rose-500 ring-2 ring-white text-[10px] font-bold text-white flex items-center justify-center leading-none"
+              >
+                {extraItems.length}
+              </span>
+            ) : null}
           </button>
 
           {open ? (
@@ -202,6 +220,37 @@ export default function Topbar({ title, back = false }) {
                   <p className="mt-1 text-xs text-slate-500 truncate">{email}</p>
                 ) : null}
               </div>
+
+              {extraItems.length ? (
+                <div className="border-b border-slate-100 py-1">
+                  {extraItems.map((m) => (
+                    <a
+                      key={m.title}
+                      href={m.url || m.key}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      role="menuitem"
+                      onClick={(e) => { onHeaderMenuClick(e, m); setOpen(false); }}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50"
+                    >
+                      {m.iconUrl ? (
+                        <img
+                          src={m.iconUrl}
+                          alt=""
+                          className="w-5 h-5 object-contain shrink-0"
+                          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                        />
+                      ) : <span className="w-5 h-5 shrink-0" />}
+                      <span className="flex-1 min-w-0">
+                        <span className="block font-semibold truncate">{m.title}</span>
+                        {m.desc ? (
+                          <span className="block text-xs text-slate-500 truncate">{m.desc}</span>
+                        ) : null}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              ) : null}
 
               <Link
                 to="/settings"
