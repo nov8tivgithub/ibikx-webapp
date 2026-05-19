@@ -56,7 +56,7 @@ export default function PopularBytesSlider({ items = [] }) {
             <Link
               key={it.id || key || it.title}
               data-popular-card
-              to={`/byte-details?key=${encodeURIComponent(key || '')}`}
+              to={`/bytes/${encodeURIComponent(key || '')}/details`}
               className="snap-start shrink-0 w-64 sm:w-72 bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-soft"
             >
               {it.image_path ? (

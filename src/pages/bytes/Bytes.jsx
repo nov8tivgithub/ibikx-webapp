@@ -34,7 +34,7 @@ export default function Bytes() {
           const bytekey = it.key || it.bytekey || it.id;
           return (
             <ByteListItem
-              key={it.id || bytekey || it.title}
+              key={it.id || bytekey || `${it.title}-${idx}`}
               title={it.title}
               image={it.image_path || it.image || it.imageLink}
               time={it.date || it.time || it.posted_at || ''}
@@ -43,7 +43,7 @@ export default function Bytes() {
               excerpt={it.description || it.excerpt || it.summary || ''}
               sourceLogo={it.source_logo}
               sourceName={it.source}
-              to={`/byte-details?key=${encodeURIComponent(bytekey || '')}`}
+              to={`/bytes/${encodeURIComponent(bytekey || '')}/details`}
             />
           );
         })}

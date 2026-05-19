@@ -82,7 +82,7 @@ export default function App() {
 
         {/* Bytes */}
         <Route path="/bytes" element={<Bytes />} />
-        <Route path="/byte-details" element={<ByteDetails />} />
+        <Route path="/bytes/:key/details" element={<ByteDetails />} />
 
         {/* Quiz */}
         <Route path="/quiz" element={<Quiz />} />

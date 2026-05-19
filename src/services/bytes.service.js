@@ -6,12 +6,12 @@ import { MakeAxiosRequest } from '../api/request';
 export const getBytesListingService = (page = 1, signal) =>
   MakeAxiosRequest('post', '/bytes/listing', { page }, signal);
 
-export const getBytesDetailsService = (bytekey, signal) =>
-  MakeAxiosRequest('post', '/bytes/details', { bytekey }, signal);
+export const getBytesDetailsService = (byteskey, signal) =>
+  MakeAxiosRequest('post', '/bytes/details', { byteskey }, signal);
 
 // Tracking — fire-and-forget.
-export const trackByteClickService = (bytekey, signal) =>
-  MakeAxiosRequest('post', '/bytes/trackclick', { bytekey }, signal);
+export const trackByteClickService = (byteskey, signal) =>
+  MakeAxiosRequest('post', '/bytes/trackclick', { byteskey }, signal);
 
-export const trackByteShareService = (bytekey, channel = '', signal) =>
-  MakeAxiosRequest('post', '/bytes/trackshare', { bytekey, channel }, signal);
+export const trackByteShareService = (byteskey, channel = '', signal) =>
+  MakeAxiosRequest('post', '/bytes/trackshare', { byteskey, channel }, signal);

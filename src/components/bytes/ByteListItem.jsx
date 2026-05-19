@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export default function ByteListItem({
   title, image, time, views, shares, excerpt, sourceLogo, sourceName,
-  to = '/byte-details',
+  to = '/bytes',
 }) {
   const trimmedExcerpt = typeof excerpt === 'string' && excerpt.length > 157
     ? `${excerpt.slice(0, 157)}...`
