@@ -29,7 +29,6 @@ export default function CardThumbnail({
         className="w-full h-full object-cover"
         onError={(e) => { e.currentTarget.style.display = 'none'; }}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/0 to-black/0" />
       {badge === 'FREE' ? (
         <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${badgeClass || 'badge-free'}`}>
           FREE
@@ -51,7 +50,13 @@ export default function CardThumbnail({
           <path strokeLinecap="round" strokeLinejoin="round" d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
         </svg>
       </button>
-      <div className="absolute bottom-2 left-2 right-2 text-white text-sm font-semibold drop-shadow">{title}</div>
+      {/* App-style solid bottom band matching CategoryTile — title sits on
+          a translucent slate panel with a hint of blur. */}
+      <div className="absolute inset-x-0 bottom-0 px-3 py-2 backdrop-blur-sm bg-slate-900/55">
+        <p className="text-white font-semibold text-sm leading-tight truncate">
+          {title}
+        </p>
+      </div>
     </Link>
   );
 }

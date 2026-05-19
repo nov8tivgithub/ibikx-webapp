@@ -29,7 +29,6 @@ export default function VideoThumbnail({
         className="w-full h-full object-cover"
         onError={(e) => { e.currentTarget.style.display = 'none'; }}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-black/0" />
       {badge === 'FREE' ? (
         <span className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${badgeClass || 'badge-free'}`}>
           FREE
@@ -58,7 +57,13 @@ export default function VideoThumbnail({
           </svg>
         </span>
       </span>
-      <div className="absolute bottom-2 left-2 right-2 text-white text-sm font-semibold drop-shadow">{title}</div>
+      {/* App-style solid bottom band matching CategoryTile — title sits on
+          a translucent slate panel with a hint of blur. */}
+      <div className="absolute inset-x-0 bottom-0 px-3 py-2 backdrop-blur-sm bg-slate-900/55">
+        <p className="text-white font-semibold text-sm leading-tight truncate">
+          {title}
+        </p>
+      </div>
     </Link>
   );
 }
