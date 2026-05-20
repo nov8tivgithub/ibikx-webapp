@@ -36,6 +36,11 @@ export default function Bytes() {
     setError(null);
 
     getBytesListingService(1, controller.signal).then((res) => {
+      // Cancelled (e.g. React strict-mode double-mount / unmount). Leave
+      // loading=true so the Layout spinner keeps showing until the new
+      // request resolves — same behaviour as useApiOnMount-backed pages
+      // (Favourites, Dashboard).
+      if (controller.signal.aborted) return;
       if (res?.status === 1 || res?.status === '1') {
         const next = pickItems(res.data);
         setItems(next);
@@ -53,15 +58,16 @@ export default function Bytes() {
     return () => controller.abort();
   }, []);
 
-  // Next-page fetch, appending into items. Drops the popular_bytes block from
-  // any page > 1 — that slider only belongs at the top of the list.
+  // Next-page fetch, appending into items. popular_bytes blocks from
+  // subsequent pages are kept too — the API decides which page should
+  // surface a slider, not the client.
   const loadMore = useCallback(() => {
     if (loadingMore || loading || !hasMore) return;
     const nextPage = page + 1;
     setLoadingMore(true);
     getBytesListingService(nextPage).then((res) => {
       if (res?.status === 1 || res?.status === '1') {
-        const next = pickItems(res.data).filter((it) => it?.type !== 'popular_bytes');
+        const next = pickItems(res.data);
         setItems((prev) => prev.concat(next));
         setPage(nextPage);
         const more = res.data?.has_load_more;
@@ -87,7 +93,13 @@ export default function Bytes() {
 
   return (
     <Layout active="bytes" title="Idea Bytes" loading={loading && !items.length && !error}>
-      {!loading && !items.length ? (
+      {/* Empty state — only when we're certain we're not mid-fetch (neither
+          first load nor a load-more), items really are empty, and no error
+          is being surfaced. Layout already replaces children with a spinner
+          during first load, but if Layout was bypassed because items had
+          been populated previously, this guard prevents the message
+          flashing while a refetch is in flight. */}
+      {!loading && !loadingMore && items.length === 0 && !error ? (
         <p className="text-sm text-slate-400">No bytes available right now.</p>
       ) : null}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">

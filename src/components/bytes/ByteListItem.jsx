@@ -21,13 +21,26 @@ export default function ByteListItem({
       ) : null}
       <div className="p-4">
         <div className="flex items-center gap-3 mb-2">
-          <span className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center text-sm font-bold overflow-hidden">
-            {sourceLogo
-              ? <img src={sourceLogo} alt={sourceName || ''} className="w-full h-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
-              : 'm'}
-          </span>
-          <span className="text-xs text-slate-500 truncate">{time}</span>
-          <span className="ml-auto flex items-center gap-3 text-xs text-slate-500 shrink-0">
+          {/* Source logo only renders when the API actually supplied one —
+              no dummy avatar / initial fallback. */}
+          {sourceLogo ? (
+            <span className="w-8 h-8 rounded-full bg-white border border-slate-200 flex items-center justify-center overflow-hidden shrink-0">
+              <img
+                src={sourceLogo}
+                alt={sourceName || ''}
+                className="w-full h-full object-cover"
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+              />
+            </span>
+          ) : null}
+          {/* Source name (when present) sits just above the date.  */}
+          <div className="min-w-0 flex-1">
+            {sourceName ? (
+              <p className="text-sm font-bold text-slate-900 truncate">{sourceName}</p>
+            ) : null}
+            <span className="text-xs text-slate-500 truncate block">{time}</span>
+          </div>
+          <span className="flex items-center gap-3 text-xs text-slate-500 shrink-0">
             <span className="inline-flex items-center gap-1">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M1.5 12s4-8 10.5-8 10.5 8 10.5 8-4 8-10.5 8S1.5 12 1.5 12z" />

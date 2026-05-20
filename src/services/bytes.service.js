@@ -3,8 +3,9 @@
 
 import { MakeAxiosRequest } from '../api/request';
 
-export const getBytesListingService = (page = 1, signal) =>
-  MakeAxiosRequest('post', '/bytes/listing', { page }, signal);
+// /bytes/listing — paged via `page_id` (matches the mobile app contract).
+export const getBytesListingService = (page_id = 1, signal) =>
+  MakeAxiosRequest('post', '/bytes/listing', { page_id }, signal);
 
 export const getBytesDetailsService = (byteskey, signal) =>
   MakeAxiosRequest('post', '/bytes/details', { byteskey }, signal);
